@@ -22,6 +22,11 @@ import {
   Description as DescriptionIcon,
   Logout as LogoutIcon,
   AccountCircle,
+  People as PeopleIcon,
+  Business as BusinessIcon,
+  AdminPanelSettings as AdminIcon,
+  Link as LinkIcon,
+  Store as StoreIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
@@ -30,9 +35,22 @@ import { zentriaColors } from '../../theme/colors';
 
 const DRAWER_WIDTH = 260;
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-  { text: 'Facturas Pendientes', icon: <DescriptionIcon />, path: '/facturas' },
+// Menús base para todos los usuarios
+const baseMenuItems = [
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'responsable'] },
+  { text: 'Facturas Pendientes', icon: <DescriptionIcon />, path: '/facturas', roles: ['admin', 'responsable'] },
+];
+
+// Menús adicionales para administradores
+const adminMenuItems = [
+  { text: 'Responsables', icon: <PeopleIcon />, path: '/admin/responsables', roles: ['admin'] },
+  { text: 'Proveedores', icon: <BusinessIcon />, path: '/admin/proveedores', roles: ['admin'] },
+];
+
+// Menús de gestión avanzada
+const gestionMenuItems = [
+  { text: 'Gestión de Proveedores', icon: <StoreIcon />, path: '/gestion/proveedores', roles: ['admin'] },
+  { text: 'Asignaciones', icon: <LinkIcon />, path: '/gestion/asignaciones', roles: ['admin'] },
 ];
 
 /**
@@ -65,6 +83,12 @@ function MainLayout() {
     navigate('/login');
   };
 
+  // Filtrar menús según el rol del usuario
+  const allMenuItems = user?.rol === 'admin'
+    ? [...baseMenuItems, ...adminMenuItems, ...gestionMenuItems]
+    : baseMenuItems;
+  const filteredMenuItems = allMenuItems.filter(item => user && item.roles.includes(user.rol));
+
   const drawer = (
     <Box>
       <Toolbar
@@ -79,7 +103,7 @@ function MainLayout() {
       </Toolbar>
       <Divider />
       <List sx={{ mt: 2 }}>
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <ListItem key={item.text} disablePadding sx={{ mb: 0.5, px: 1 }}>
@@ -188,14 +212,17 @@ function MainLayout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+          p: { xs: 2, sm: 3, md: 4 },
+          width: '100%',
+          maxWidth: '100%',
           mt: 8,
           backgroundColor: '#FAFAFA',
           minHeight: '100vh',
         }}
       >
-        <Outlet />
+        <Box sx={{ maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );

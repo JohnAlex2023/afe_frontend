@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { FacturaPendiente, DashboardMetrics, FacturaConWorkflow } from '../../types/factura.types';
+import type { FacturaPendiente, DashboardMetrics, FacturaConWorkflow, ContextoHistorico } from '../../types/factura.types';
 import apiClient from '../../services/api';
 
 /**
@@ -9,6 +9,7 @@ import apiClient from '../../services/api';
 interface FacturasState {
   pendientes: FacturaPendiente[];
   selectedFactura: FacturaConWorkflow | null;
+  contextoHistorico: ContextoHistorico | null;
   dashboard: DashboardMetrics | null;
   loading: boolean;
   error: string | null;
@@ -17,6 +18,7 @@ interface FacturasState {
 const initialState: FacturasState = {
   pendientes: [],
   selectedFactura: null,
+  contextoHistorico: null,
   dashboard: null,
   loading: false,
   error: null,
@@ -69,6 +71,7 @@ const facturasSlice = createSlice({
   reducers: {
     clearSelectedFactura: (state) => {
       state.selectedFactura = null;
+      state.contextoHistorico = null;
     },
     clearError: (state) => {
       state.error = null;
@@ -97,6 +100,7 @@ const facturasSlice = createSlice({
       .addCase(fetchFacturaDetalle.fulfilled, (state, action) => {
         state.loading = false;
         state.selectedFactura = action.payload;
+        state.contextoHistorico = action.payload.contexto_historico || null;
       })
       .addCase(fetchFacturaDetalle.rejected, (state, action) => {
         state.loading = false;

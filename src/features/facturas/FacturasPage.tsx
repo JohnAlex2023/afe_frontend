@@ -332,9 +332,16 @@ function FacturasPage() {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: '100%', maxWidth: '100%' }}>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+        flexWrap="wrap"
+        gap={2}
+      >
         <Box>
           <Typography variant="h4" fontWeight={800} sx={{
             background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
@@ -344,7 +351,7 @@ function FacturasPage() {
           }}>
             Gestión de Facturas
           </Typography>
-          <Box display="flex" alignItems="center" gap={2} mt={1}>
+          <Box display="flex" alignItems="center" gap={2} mt={1} flexWrap="wrap">
             <Chip
               label={`${filteredFacturas.length} de ${pendientes.length} facturas`}
               color="primary"
@@ -362,7 +369,7 @@ function FacturasPage() {
             )}
           </Box>
         </Box>
-        <Box display="flex" gap={1}>
+        <Box display="flex" gap={1} flexWrap="wrap">
           <Tooltip title="Actualizar datos">
             <IconButton
               onClick={handleRefresh}
@@ -394,7 +401,7 @@ function FacturasPage() {
       </Box>
 
       {/* Barra de búsqueda y filtros */}
-      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+      <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={6}>
             <TextField
@@ -494,9 +501,9 @@ function FacturasPage() {
         </Collapse>
       </Paper>
 
-      <Card>
-        <TableContainer>
-          <Table>
+      <Card sx={{ width: '100%', overflow: 'hidden' }}>
+        <TableContainer sx={{ width: '100%', overflowX: 'auto' }}>
+          <Table sx={{ minWidth: { xs: 650, sm: 750, md: 900 } }}>
             <TableHead>
               <TableRow>
                 <TableCell>

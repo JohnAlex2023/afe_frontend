@@ -4,6 +4,11 @@ import MainLayout from './components/Layout/MainLayout';
 import LoginPage from './features/auth/LoginPage';
 import DashboardPage from './features/dashboard/DashboardPage';
 import FacturasPage from './features/facturas/FacturasPage';
+import ResponsablesPage from './features/admin/ResponsablesPage';
+import ProveedoresPage from './features/admin/ProveedoresPage';
+import ProveedoresManagementPage from './features/proveedores/ProveedoresPage';
+import AsignacionesPage from './features/proveedores/AsignacionesPage';
+import RoleGuard from './components/Auth/RoleGuard';
 
 /**
  * App Routes Configuration
@@ -37,6 +42,43 @@ function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="facturas" element={<FacturasPage />} />
+
+        {/* Rutas de administración - solo para admin */}
+        <Route
+          path="admin/responsables"
+          element={
+            <RoleGuard allowedRoles={['admin']}>
+              <ResponsablesPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="admin/proveedores"
+          element={
+            <RoleGuard allowedRoles={['admin']}>
+              <ProveedoresPage />
+            </RoleGuard>
+          }
+        />
+
+        {/* Rutas de gestión de proveedores */}
+        <Route
+          path="gestion/proveedores"
+          element={
+            <RoleGuard allowedRoles={['admin']}>
+              <ProveedoresManagementPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="gestion/asignaciones"
+          element={
+            <RoleGuard allowedRoles={['admin']}>
+              <AsignacionesPage />
+            </RoleGuard>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

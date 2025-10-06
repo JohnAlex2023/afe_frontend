@@ -63,6 +63,7 @@ function LoginPage() {
   const [emailError, setEmailError] = useState('');
   const [usuarioError, setUsuarioError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [loginError, setLoginError] = useState('');
 
   const [notification, setNotification] = useState<Notification>({
     open: false,
@@ -119,12 +120,17 @@ function LoginPage() {
     return isValid;
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    setLoginError('');
+
     if (isLocked) {
-      showNotification(
-        `Cuenta bloqueada temporalmente. Intente nuevamente en ${lockTimeRemaining} segundos.`,
-        'warning'
-      );
+      const errorMsg = `Cuenta bloqueada temporalmente. Intente nuevamente en ${lockTimeRemaining} segundos.`;
+      showNotification(errorMsg, 'warning');
+      setLoginError(errorMsg);
       return;
     }
 
@@ -149,11 +155,14 @@ function LoginPage() {
 
       showNotification('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
       setLoginAttempts(0);
+      setLoginError('');
 
       setTimeout(() => {
         navigate('/dashboard');
       }, 800);
     } catch (err: any) {
+      setLoading(false);
+
       const newAttempts = loginAttempts + 1;
       setLoginAttempts(newAttempts);
 
@@ -183,8 +192,8 @@ function LoginPage() {
         errorMessage = err.response?.data?.detail || err.message || errorMessage;
       }
 
+      setLoginError(errorMessage);
       showNotification(errorMessage, severity);
-      setLoading(false);
     }
   };
 
@@ -325,8 +334,24 @@ function LoginPage() {
                 </Alert>
               </Collapse>
 
+              {/* Alerta de error de login */}
+              <Collapse in={!!loginError && !isLocked}>
+                <Alert
+                  severity="error"
+                  icon={<ErrorIcon />}
+                  onClose={() => setLoginError('')}
+                  sx={{
+                    mb: 3,
+                    borderRadius: 2,
+                    '& .MuiAlert-message': { fontWeight: 500 },
+                  }}
+                >
+                  {loginError}
+                </Alert>
+              </Collapse>
+
               {/* Formulario */}
-              <Box>
+              <Box component="form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
                 <TextField
                   fullWidth
                   label="Usuario"
@@ -334,6 +359,7 @@ function LoginPage() {
                   onChange={(e) => {
                     setUsuario(e.target.value);
                     if (usuarioError) setUsuarioError('');
+                    if (loginError) setLoginError('');
                   }}
                   margin="normal"
                   required
@@ -370,6 +396,7 @@ function LoginPage() {
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (passwordError) setPasswordError('');
+                    if (loginError) setLoginError('');
                   }}
                   margin="normal"
                   required
@@ -436,6 +463,7 @@ function LoginPage() {
                   fullWidth
                   variant="contained"
                   size="large"
+                  type="submit"
                   disabled={loading || !usuario || !password || isLocked}
                   sx={{
                     mt: 2,
@@ -595,7 +623,7 @@ function LoginPage() {
       {/* Sistema de notificaciones */}
       <Snackbar
         open={notification.open}
-        autoHideDuration={6000}
+        autoHideDuration={notification.severity === 'error' || notification.severity === 'warning' ? 8000 : 4000}
         onClose={handleCloseNotification}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >

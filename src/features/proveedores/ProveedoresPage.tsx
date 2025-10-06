@@ -1,0 +1,444 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Card,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  IconButton,
+  Tooltip,
+  Chip,
+  TextField,
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  Switch,
+  FormControlLabel,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import {
+  Add,
+  Edit,
+  Delete,
+  Search,
+  Refresh,
+  CheckCircle,
+  Cancel,
+} from '@mui/icons-material';
+import { useNotification } from '../../components/Notifications/NotificationProvider';
+import {
+  getProveedores,
+  createProveedor,
+  updateProveedor,
+  deleteProveedor,
+  type Proveedor,
+  type ProveedorCreate,
+} from '../../services/proveedores.api';
+
+function ProveedoresPage() {
+  const { showNotification } = useNotification();
+
+  // Estados
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchText, setSearchText] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState<ProveedorCreate>({
+    nit: '',
+    razon_social: '',
+    area: '',
+    contacto_email: '',
+    telefono: '',
+    direccion: '',
+    activo: true,
+  });
+
+  // Cargar proveedores
+  const loadProveedores = async () => {
+    setLoading(true);
+    try {
+      const data = await getProveedores({ skip: 0, limit: 1000 });
+      setProveedores(data);
+    } catch (error: any) {
+      showNotification('Error al cargar proveedores', 'error');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProveedores();
+  }, []);
+
+  // Filtrado
+  const filteredProveedores = proveedores.filter((p) =>
+    p.nit.toLowerCase().includes(searchText.toLowerCase()) ||
+    p.razon_social.toLowerCase().includes(searchText.toLowerCase()) ||
+    p.area?.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  // Paginación
+  const paginatedProveedores = filteredProveedores.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
+  // Handlers
+  const handleOpenDialog = (proveedor?: Proveedor) => {
+    if (proveedor) {
+      setEditMode(true);
+      setSelectedProveedor(proveedor);
+      setFormData({
+        nit: proveedor.nit,
+        razon_social: proveedor.razon_social,
+        area: proveedor.area || '',
+        contacto_email: proveedor.contacto_email || '',
+        telefono: proveedor.telefono || '',
+        direccion: proveedor.direccion || '',
+        activo: proveedor.activo,
+      });
+    } else {
+      setEditMode(false);
+      setSelectedProveedor(null);
+      setFormData({
+        nit: '',
+        razon_social: '',
+        area: '',
+        contacto_email: '',
+        telefono: '',
+        direccion: '',
+        activo: true,
+      });
+    }
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setEditMode(false);
+    setSelectedProveedor(null);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      if (editMode && selectedProveedor) {
+        await updateProveedor(selectedProveedor.id, formData);
+        showNotification('Proveedor actualizado exitosamente', 'success');
+      } else {
+        await createProveedor(formData);
+        showNotification('Proveedor creado exitosamente', 'success');
+      }
+      handleCloseDialog();
+      loadProveedores();
+    } catch (error: any) {
+      showNotification(
+        error.response?.data?.detail || 'Error al guardar proveedor',
+        'error'
+      );
+      console.error(error);
+    }
+  };
+
+  const handleDeleteClick = (proveedor: Proveedor) => {
+    setSelectedProveedor(proveedor);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedProveedor) return;
+
+    try {
+      await deleteProveedor(selectedProveedor.id);
+      showNotification('Proveedor eliminado exitosamente', 'success');
+      setDeleteDialogOpen(false);
+      setSelectedProveedor(null);
+      loadProveedores();
+    } catch (error: any) {
+      showNotification(
+        error.response?.data?.detail || 'Error al eliminar proveedor',
+        'error'
+      );
+      console.error(error);
+    }
+  };
+
+  return (
+    <Box>
+      {/* Header */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" fontWeight="bold">
+          Gestión de Proveedores
+        </Typography>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={loadProveedores}
+            disabled={loading}
+          >
+            Refrescar
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => handleOpenDialog()}
+          >
+            Nuevo Proveedor
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Búsqueda */}
+      <Box mb={3}>
+        <TextField
+          fullWidth
+          placeholder="Buscar por NIT, razón social o área..."
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+
+      {/* Tabla */}
+      <Card>
+        {loading ? (
+          <Box display="flex" justifyContent="center" p={4}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>NIT</TableCell>
+                    <TableCell>Razón Social</TableCell>
+                    <TableCell>Área</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Teléfono</TableCell>
+                    <TableCell>Estado</TableCell>
+                    <TableCell align="right">Acciones</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paginatedProveedores.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center">
+                        <Typography color="text.secondary">
+                          No se encontraron proveedores
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedProveedores.map((proveedor) => (
+                      <TableRow key={proveedor.id} hover>
+                        <TableCell>
+                          <Typography fontWeight="bold">{proveedor.nit}</Typography>
+                        </TableCell>
+                        <TableCell>{proveedor.razon_social}</TableCell>
+                        <TableCell>{proveedor.area || '-'}</TableCell>
+                        <TableCell>{proveedor.contacto_email || '-'}</TableCell>
+                        <TableCell>{proveedor.telefono || '-'}</TableCell>
+                        <TableCell>
+                          {proveedor.activo ? (
+                            <Chip
+                              label="Activo"
+                              color="success"
+                              size="small"
+                              icon={<CheckCircle />}
+                            />
+                          ) : (
+                            <Chip
+                              label="Inactivo"
+                              color="error"
+                              size="small"
+                              icon={<Cancel />}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Tooltip title="Editar">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleOpenDialog(proveedor)}
+                            >
+                              <Edit />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Eliminar">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteClick(proveedor)}
+                            >
+                              <Delete />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              component="div"
+              count={filteredProveedores.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              labelRowsPerPage="Filas por página:"
+            />
+          </>
+        )}
+      </Card>
+
+      {/* Dialog Crear/Editar */}
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {editMode ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                required
+                label="NIT"
+                value={formData.nit}
+                onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
+                disabled={editMode}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                required
+                label="Razón Social"
+                value={formData.razon_social}
+                onChange={(e) =>
+                  setFormData({ ...formData, razon_social: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Área"
+                value={formData.area}
+                onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Email de Contacto"
+                type="email"
+                value={formData.contacto_email}
+                onChange={(e) =>
+                  setFormData({ ...formData, contacto_email: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Teléfono"
+                value={formData.telefono}
+                onChange={(e) =>
+                  setFormData({ ...formData, telefono: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Dirección"
+                value={formData.direccion}
+                onChange={(e) =>
+                  setFormData({ ...formData, direccion: e.target.value })
+                }
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.activo}
+                    onChange={(e) =>
+                      setFormData({ ...formData, activo: e.target.checked })
+                    }
+                  />
+                }
+                label="Proveedor Activo"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={!formData.nit || !formData.razon_social}
+          >
+            {editMode ? 'Actualizar' : 'Crear'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog Eliminar */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirmar Eliminación</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Esta acción no se puede deshacer
+          </Alert>
+          <Typography>
+            ¿Está seguro de que desea eliminar el proveedor{' '}
+            <strong>{selectedProveedor?.razon_social}</strong> (NIT:{' '}
+            {selectedProveedor?.nit})?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
+          <Button variant="contained" color="error" onClick={handleDeleteConfirm}>
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+export default ProveedoresPage;

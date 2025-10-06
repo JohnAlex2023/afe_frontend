@@ -9,6 +9,9 @@ interface User {
   nombre: string;
   email: string;
   usuario: string;
+  area?: string;
+  rol: string; // 'admin' | 'responsable'
+  activo: boolean;
 }
 
 interface AuthState {
@@ -18,8 +21,9 @@ interface AuthState {
   loading: boolean;
 }
 
+const storedUser = localStorage.getItem('user');
 const initialState: AuthState = {
-  user: null,
+  user: storedUser ? JSON.parse(storedUser) : null,
   token: localStorage.getItem('access_token'),
   isAuthenticated: !!localStorage.getItem('access_token'),
   loading: false,
@@ -34,12 +38,14 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.isAuthenticated = true;
       localStorage.setItem('access_token', action.payload.token);
+      localStorage.setItem('user', JSON.stringify(action.payload.user));
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
       localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
@@ -49,3 +55,4 @@ const authSlice = createSlice({
 
 export const { setCredentials, logout, setLoading } = authSlice.actions;
 export default authSlice.reducer;
+export type { User };

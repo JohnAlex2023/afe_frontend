@@ -65,7 +65,40 @@ export interface Diferencia {
 export interface FacturaConWorkflow {
   factura: Factura;
   workflow?: Workflow;
+  contexto_historico?: ContextoHistorico;
   tiene_workflow: boolean;
+}
+
+export interface ContextoHistorico {
+  tipo_patron: 'TIPO_A' | 'TIPO_B' | 'TIPO_C';
+  recomendacion: 'LISTA_PARA_APROBAR' | 'REQUIERE_ANALISIS';
+  motivo: string;
+  confianza: number;
+  estadisticas: {
+    pagos_analizados: number;
+    meses_con_pagos: number;
+    monto_promedio: number;
+    monto_minimo: number;
+    monto_maximo: number;
+    coeficiente_variacion: number;
+  };
+  rango_esperado?: {
+    inferior: number;
+    superior: number;
+  };
+  ultimo_pago?: {
+    fecha: string;
+    monto: number;
+  };
+  pagos_historicos: PagoHistorico[];
+  contexto_adicional: Record<string, any>;
+}
+
+export interface PagoHistorico {
+  periodo: string;
+  monto: number;
+  factura_id: number;
+  fecha: string | null;
 }
 
 export interface FacturaPendiente extends Workflow {

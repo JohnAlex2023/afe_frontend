@@ -16,20 +16,22 @@ import {
   Alert,
 } from '@mui/material';
 import { Close, CheckCircle, Warning } from '@mui/icons-material';
-import type { Workflow } from '../../types/factura.types';
+import type { Workflow, ContextoHistorico } from '../../types/factura.types';
 import { zentriaColors } from '../../theme/colors';
+import ContextoHistoricoCard from '../ContextoHistorico';
 
 interface FacturaDetailModalProps {
   open: boolean;
   onClose: () => void;
   workflow: Workflow | null;
+  contextoHistorico?: ContextoHistorico;
 }
 
 /**
  * Modal para mostrar detalles completos de una factura
  * con comparación lado a lado cuando hay similitud
  */
-function FacturaDetailModal({ open, onClose, workflow }: FacturaDetailModalProps) {
+function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: FacturaDetailModalProps) {
   if (!workflow || !workflow.factura) {
     return null;
   }
@@ -334,6 +336,16 @@ function FacturaDetailModal({ open, onClose, workflow }: FacturaDetailModalProps
             <Typography variant="body2" color="text.secondary">
               {factura.observaciones}
             </Typography>
+          </Box>
+        )}
+
+        {/* Contexto Histórico - Nuevo */}
+        {contextoHistorico && (
+          <Box mt={3}>
+            <ContextoHistoricoCard
+              contexto={contextoHistorico}
+              montoActual={factura.total || 0}
+            />
           </Box>
         )}
       </DialogContent>

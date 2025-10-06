@@ -7,475 +7,740 @@ import {
   Typography,
   CircularProgress,
   Paper,
-  Avatar,
-  Chip,
-  Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
   IconButton,
+  Chip,
+  Button,
+  TextField,
+  InputAdornment,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Divider,
+  Avatar,
   Tooltip,
-  LinearProgress,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import {
-  PendingActions as PendingIcon,
-  CheckCircle as CheckIcon,
-  Cancel as CancelIcon,
-  Speed as SpeedIcon,
-  TrendingUp,
-  TrendingDown,
-  AccessTime,
-  AttachMoney,
+  Search,
+  FilterList,
+  Add,
+  Edit,
+  Delete,
+  Visibility,
+  CheckCircle,
+  Cancel,
+  PendingActions,
   Refresh,
-  ArrowUpward,
-  ArrowDownward,
+  Download,
+  MoreVert,
+  AttachFile,
 } from '@mui/icons-material';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  Legend,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from 'recharts';
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { fetchDashboard } from '../facturas/facturasSlice';
+import { useAppSelector } from '../../app/hooks';
 import { zentriaColors } from '../../theme/colors';
+import apiClient from '../../services/api';
 
-interface MetricCardProps {
-  title: string;
-  value: number | string;
-  icon: React.ReactNode;
-  color: string;
-  trend?: number;
-  subtitle?: string;
+interface Factura {
+  id: number;
+  numero_factura: string;
+  cufe?: string;
+  nit_emisor: string;
+  nombre_emisor: string;
+  monto_total: number;
+  fecha_emision: string;
+  fecha_vencimiento?: string;
+  estado: string;
+  responsable_id?: number;
+  observaciones?: string;
+  archivo_adjunto?: string;
 }
 
-const MetricCard = ({ title, value, icon, color, trend, subtitle }: MetricCardProps) => (
-  <Card
-    sx={{
-      height: '100%',
-      background: `linear-gradient(135deg, ${color}08 0%, ${color}02 100%)`,
-      border: `1px solid ${color}20`,
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: `0 12px 24px ${color}30`,
-        border: `1px solid ${color}40`,
-      },
-    }}
-  >
-    <CardContent sx={{ p: 3 }}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-        <Typography color="textSecondary" fontWeight={600} variant="body2" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
-          {title}
-        </Typography>
-        <Avatar
-          sx={{
-            backgroundColor: color,
-            width: 48,
-            height: 48,
-            boxShadow: `0 4px 12px ${color}40`,
-          }}
-        >
-          {icon}
-        </Avatar>
-      </Box>
-      <Typography variant="h3" fontWeight={800} color={color} mb={1}>
-        {value}
-      </Typography>
-      {trend !== undefined && (
-        <Box display="flex" alignItems="center" gap={0.5}>
-          {trend > 0 ? (
-            <ArrowUpward sx={{ fontSize: 16, color: zentriaColors.verde.main }} />
-          ) : trend < 0 ? (
-            <ArrowDownward sx={{ fontSize: 16, color: zentriaColors.naranja.main }} />
-          ) : null}
-          <Typography
-            variant="caption"
-            fontWeight={600}
-            color={trend > 0 ? zentriaColors.verde.main : trend < 0 ? zentriaColors.naranja.main : 'text.secondary'}
-          >
-            {trend > 0 ? '+' : ''}{trend}% vs mes anterior
-          </Typography>
-        </Box>
-      )}
-      {subtitle && (
-        <Typography variant="caption" color="text.secondary">
-          {subtitle}
-        </Typography>
-      )}
-    </CardContent>
-  </Card>
-);
+interface DashboardStats {
+  total: number;
+  pendientes: number;
+  aprobadas: number;
+  rechazadas: number;
+}
 
 /**
- * Dashboard Page - Enterprise Level
- * Dashboard principal con métricas en tiempo real, gráficos interactivos y analytics
+ * DashboardPage con CRUD Completo
+ * Gestión profesional de facturas con métricas y acciones
  */
-
 function DashboardPage() {
-  const dispatch = useAppDispatch();
-  const { dashboard, loading } = useAppSelector((state) => state.facturas);
   const user = useAppSelector((state) => state.auth.user);
-  const [refreshing, setRefreshing] = useState(false);
+  const [facturas, setFacturas] = useState<Factura[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    total: 0,
+    pendientes: 0,
+    aprobadas: 0,
+    rechazadas: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterEstado, setFilterEstado] = useState('todos');
+  const [selectedFactura, setSelectedFactura] = useState<Factura | null>(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'create'>('view');
+  const [error, setError] = useState('');
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuFactura, setMenuFactura] = useState<Factura | null>(null);
+
+  const [formData, setFormData] = useState({
+    numero_factura: '',
+    nit_emisor: '',
+    nombre_emisor: '',
+    monto_total: '',
+    fecha_emision: '',
+    fecha_vencimiento: '',
+    observaciones: '',
+  });
 
   useEffect(() => {
-    if (user?.id) {
-      dispatch(fetchDashboard(user.id));
-    }
-  }, [dispatch, user]);
+    loadData();
+  }, [filterEstado]);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    if (user?.id) {
-      await dispatch(fetchDashboard(user.id));
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get('/facturas/');
+      const allFacturas = response.data;
+
+      // Filtrar por estado
+      const filtered = filterEstado === 'todos'
+        ? allFacturas
+        : allFacturas.filter((f: Factura) => f.estado === filterEstado);
+
+      setFacturas(filtered);
+
+      // Calcular estadísticas
+      setStats({
+        total: allFacturas.length,
+        pendientes: allFacturas.filter((f: Factura) => f.estado === 'pendiente').length,
+        aprobadas: allFacturas.filter((f: Factura) => f.estado === 'aprobado').length,
+        rechazadas: allFacturas.filter((f: Factura) => f.estado === 'rechazado').length,
+      });
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Error al cargar facturas');
+    } finally {
+      setLoading(false);
     }
-    setTimeout(() => setRefreshing(false), 500);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    setPage(0);
+  };
+
+  const filteredFacturas = facturas.filter(
+    (factura) =>
+      factura?.numero_factura?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      factura?.nombre_emisor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      factura?.nit_emisor?.includes(searchTerm)
+  );
+
+  const handleOpenDialog = (mode: 'view' | 'edit' | 'create', factura?: Factura) => {
+    setDialogMode(mode);
+    if (factura) {
+      setSelectedFactura(factura);
+      setFormData({
+        numero_factura: factura.numero_factura || '',
+        nit_emisor: factura.nit_emisor || '',
+        nombre_emisor: factura.nombre_emisor || '',
+        monto_total: factura.monto_total ? factura.monto_total.toString() : '',
+        fecha_emision: factura.fecha_emision ? factura.fecha_emision.split('T')[0] : '',
+        fecha_vencimiento: factura.fecha_vencimiento?.split('T')[0] || '',
+        observaciones: factura.observaciones || '',
+      });
+    } else {
+      setSelectedFactura(null);
+      setFormData({
+        numero_factura: '',
+        nit_emisor: '',
+        nombre_emisor: '',
+        monto_total: '',
+        fecha_emision: new Date().toISOString().split('T')[0],
+        fecha_vencimiento: '',
+        observaciones: '',
+      });
+    }
+    setOpenDialog(true);
+    setAnchorEl(null);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setSelectedFactura(null);
+    setError('');
+  };
+
+  const handleSave = async () => {
+    try {
+      const payload = {
+        ...formData,
+        monto_total: parseFloat(formData.monto_total),
+        estado: 'pendiente',
+      };
+
+      if (dialogMode === 'create') {
+        await apiClient.post('/facturas/', payload);
+      } else if (dialogMode === 'edit' && selectedFactura) {
+        await apiClient.put(`/facturas/${selectedFactura.id}`, payload);
+      }
+
+      handleCloseDialog();
+      loadData();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Error al guardar factura');
+    }
+  };
+
+  const handleDelete = async (factura: Factura) => {
+    if (!confirm(`¿Está seguro de eliminar la factura ${factura.numero_factura}?`)) return;
+
+    try {
+      await apiClient.delete(`/facturas/${factura.id}`);
+      loadData();
+      setAnchorEl(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Error al eliminar factura');
+    }
+  };
+
+  const handleApprove = async (factura: Factura) => {
+    try {
+      await apiClient.post(`/facturas/${factura.id}/aprobar`, {
+        aprobado_por: user?.usuario,
+      });
+      loadData();
+      setAnchorEl(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Error al aprobar factura');
+    }
+  };
+
+  const handleReject = async (factura: Factura) => {
+    const motivo = prompt('Ingrese el motivo del rechazo:');
+    if (!motivo) return;
+
+    try {
+      await apiClient.post(`/facturas/${factura.id}/rechazar`, {
+        rechazado_por: user?.usuario,
+        motivo,
+      });
+      loadData();
+      setAnchorEl(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Error al rechazar factura');
+    }
+  };
+
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'aprobado':
+        return 'success';
+      case 'rechazado':
+        return 'error';
+      case 'pendiente':
+        return 'warning';
+      default:
+        return 'default';
+    }
+  };
+
+  const getEstadoLabel = (estado: string) => {
+    switch (estado) {
+      case 'aprobado':
+        return 'Aprobado';
+      case 'rechazado':
+        return 'Rechazado';
+      case 'pendiente':
+        return 'Pendiente';
+      default:
+        return estado;
+    }
   };
 
   if (loading) {
     return (
-      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="400px" gap={2}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress size={60} sx={{ color: zentriaColors.violeta.main }} />
-        <Typography variant="h6" color="text.secondary">Cargando dashboard...</Typography>
       </Box>
     );
   }
 
-  const metrics = dashboard?.resumen || {
-    total_facturas: 0,
-    pendientes_revision: 0,
-    aprobadas_auto: 0,
-    rechazadas: 0,
-  };
-
-  const tasaAprobacion = dashboard?.metricas?.tasa_aprobacion_auto || 0;
-
-  // Datos de ejemplo para gráficos (en producción vendrían del backend)
-  const monthlyData = [
-    { mes: 'Ene', aprobadas: 45, rechazadas: 12, pendientes: 8 },
-    { mes: 'Feb', aprobadas: 52, rechazadas: 15, pendientes: 10 },
-    { mes: 'Mar', aprobadas: 61, rechazadas: 10, pendientes: 6 },
-    { mes: 'Abr', aprobadas: 58, rechazadas: 14, pendientes: 12 },
-    { mes: 'May', aprobadas: 70, rechazadas: 8, pendientes: 5 },
-    { mes: 'Jun', aprobadas: 75, rechazadas: 11, pendientes: 9 },
-  ];
-
-  const statusDistribution = [
-    { name: 'Aprobadas', value: metrics.aprobadas_auto, color: zentriaColors.verde.main },
-    { name: 'Pendientes', value: metrics.pendientes_revision, color: zentriaColors.amarillo.dark },
-    { name: 'Rechazadas', value: metrics.rechazadas, color: zentriaColors.naranja.main },
-  ];
-
-  const topProveedores = [
-    { nombre: 'Proveedor A', facturas: 45, monto: 125000 },
-    { nombre: 'Proveedor B', facturas: 38, monto: 98000 },
-    { nombre: 'Proveedor C', facturas: 32, monto: 87000 },
-    { nombre: 'Proveedor D', facturas: 28, monto: 75000 },
-    { nombre: 'Proveedor E', facturas: 22, monto: 62000 },
-  ];
-
   return (
     <Box>
-      {/* Header del Dashboard */}
+      {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Box>
-          <Typography variant="h4" fontWeight={800} sx={{
-            background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>
-            Dashboard de Control
-          </Typography>
-          <Typography variant="body1" color="text.secondary" mt={0.5}>
-            Vista general del sistema de aprobación de facturas • Actualizado en tiempo real
-          </Typography>
-        </Box>
-        <Tooltip title="Actualizar datos">
-          <IconButton
-            onClick={handleRefresh}
-            disabled={refreshing}
+          <Typography
+            variant="h4"
+            fontWeight={800}
             sx={{
               background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
-              color: 'white',
-              '&:hover': {
-                background: `linear-gradient(135deg, ${zentriaColors.violeta.dark}, ${zentriaColors.naranja.dark})`,
-              },
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
             }}
           >
-            <Refresh sx={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
-          </IconButton>
-        </Tooltip>
+            Dashboard de Control
+          </Typography>
+          <Typography variant="body2" color="text.secondary" mt={0.5}>
+            Gestión completa de facturas • Sistema de aprobación
+          </Typography>
+        </Box>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={loadData}
+            sx={{ borderColor: zentriaColors.violeta.main, color: zentriaColors.violeta.main }}
+          >
+            Actualizar
+          </Button>
+          {user?.rol === 'admin' && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleOpenDialog('create')}
+              sx={{
+                background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
+              }}
+            >
+              Nueva Factura
+            </Button>
+          )}
+        </Box>
       </Box>
 
-      {/* Métricas Principales */}
+      {/* Estadísticas */}
       <Grid container spacing={3} mb={4}>
         <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
-            title="Pendientes"
-            value={metrics.pendientes_revision}
-            icon={<PendingIcon sx={{ fontSize: 24 }} />}
-            color={zentriaColors.amarillo.dark}
-            trend={12}
-            subtitle="Requieren revisión"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
-            title="Aprobadas Auto"
-            value={metrics.aprobadas_auto}
-            icon={<CheckIcon sx={{ fontSize: 24 }} />}
-            color={zentriaColors.verde.main}
-            trend={8}
-            subtitle="Automáticamente"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
-            title="Rechazadas"
-            value={metrics.rechazadas}
-            icon={<CancelIcon sx={{ fontSize: 24 }} />}
-            color={zentriaColors.naranja.main}
-            trend={-5}
-            subtitle="Total rechazadas"
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <MetricCard
-            title="Tasa Aprobación"
-            value={`${tasaAprobacion.toFixed(1)}%`}
-            icon={<SpeedIcon sx={{ fontSize: 24 }} />}
-            color={zentriaColors.violeta.main}
-            trend={3}
-            subtitle="Efectividad del sistema"
-          />
-        </Grid>
-      </Grid>
-
-      {/* Gráficos y Analytics */}
-      <Grid container spacing={3}>
-        {/* Gráfico de Tendencias Mensuales */}
-        <Grid item xs={12} lg={8}>
-          <Card sx={{ height: '100%' }}>
+          <Card
+            sx={{
+              background: `linear-gradient(135deg, ${zentriaColors.violeta.main}10, ${zentriaColors.violeta.main}05)`,
+              border: `1px solid ${zentriaColors.violeta.main}30`,
+            }}
+          >
             <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
                 <Box>
-                  <Typography variant="h6" fontWeight={700}>
-                    Tendencia de Aprobaciones
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    TOTAL FACTURAS
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Últimos 6 meses
+                  <Typography variant="h4" fontWeight={800} color={zentriaColors.violeta.main}>
+                    {stats.total}
                   </Typography>
                 </Box>
-                <Chip
-                  icon={<TrendingUp />}
-                  label="Mejorando"
-                  color="success"
-                  size="small"
-                  sx={{ fontWeight: 600 }}
-                />
+                <Avatar sx={{ bgcolor: zentriaColors.violeta.main, width: 56, height: 56 }}>
+                  <AttachFile />
+                </Avatar>
               </Box>
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={monthlyData}>
-                  <defs>
-                    <linearGradient id="colorAprobadas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={zentriaColors.verde.main} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={zentriaColors.verde.main} stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorRechazadas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={zentriaColors.naranja.main} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={zentriaColors.naranja.main} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="mes" stroke="#888" />
-                  <YAxis stroke="#888" />
-                  <RechartsTooltip />
-                  <Legend />
-                  <Area type="monotone" dataKey="aprobadas" stroke={zentriaColors.verde.main} fillOpacity={1} fill="url(#colorAprobadas)" />
-                  <Area type="monotone" dataKey="rechazadas" stroke={zentriaColors.naranja.main} fillOpacity={1} fill="url(#colorRechazadas)" />
-                  <Area type="monotone" dataKey="pendientes" stroke={zentriaColors.amarillo.dark} fill={zentriaColors.amarillo.light} />
-                </AreaChart>
-              </ResponsiveContainer>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Distribución por Estado (Pie Chart) */}
-        <Grid item xs={12} lg={4}>
-          <Card sx={{ height: '100%' }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              background: `linear-gradient(135deg, ${zentriaColors.amarillo.dark}10, ${zentriaColors.amarillo.dark}05)`,
+              border: `1px solid ${zentriaColors.amarillo.dark}30`,
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={1}>
-                Distribución por Estado
-              </Typography>
-              <Typography variant="caption" color="text.secondary" mb={3} display="block">
-                Total: {metrics.total_facturas || statusDistribution.reduce((sum, item) => sum + item.value, 0)} facturas
-              </Typography>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={statusDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {statusDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Top Proveedores */}
-        <Grid item xs={12} lg={6}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={3}>
-                Top 5 Proveedores
-              </Typography>
-              {topProveedores.map((proveedor, index) => (
-                <Box key={index} mb={2}>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <Avatar
-                        sx={{
-                          bgcolor: `${zentriaColors.violeta.main}${(5 - index) * 20}`,
-                          width: 32,
-                          height: 32,
-                          fontSize: 14,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {index + 1}
-                      </Avatar>
-                      <Typography variant="body2" fontWeight={600}>
-                        {proveedor.nombre}
-                      </Typography>
-                    </Box>
-                    <Box textAlign="right">
-                      <Typography variant="body2" fontWeight={700} color={zentriaColors.verde.main}>
-                        ${(proveedor.monto / 1000).toFixed(0)}K
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {proveedor.facturas} facturas
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(proveedor.facturas / topProveedores[0].facturas) * 100}
-                    sx={{
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: `${zentriaColors.violeta.main}10`,
-                      '& .MuiLinearProgress-bar': {
-                        borderRadius: 3,
-                        background: `linear-gradient(90deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
-                      },
-                    }}
-                  />
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    PENDIENTES
+                  </Typography>
+                  <Typography variant="h4" fontWeight={800} color={zentriaColors.amarillo.dark}>
+                    {stats.pendientes}
+                  </Typography>
                 </Box>
-              ))}
+                <Avatar sx={{ bgcolor: zentriaColors.amarillo.dark, width: 56, height: 56 }}>
+                  <PendingActions />
+                </Avatar>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
 
-        {/* Métricas Adicionales */}
-        <Grid item xs={12} lg={6}>
-          <Card>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              background: `linear-gradient(135deg, ${zentriaColors.verde.main}10, ${zentriaColors.verde.main}05)`,
+              border: `1px solid ${zentriaColors.verde.main}30`,
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={3}>
-                Métricas de Rendimiento
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: `${zentriaColors.verde.main}08`, borderRadius: 2 }}>
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <AccessTime sx={{ fontSize: 20, color: zentriaColors.verde.main }} />
-                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                        Tiempo Promedio
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" fontWeight={800} color={zentriaColors.verde.main}>
-                      2.3h
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      De procesamiento
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: `${zentriaColors.violeta.main}08`, borderRadius: 2 }}>
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <AttachMoney sx={{ fontSize: 20, color: zentriaColors.violeta.main }} />
-                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                        Monto Total
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" fontWeight={800} color={zentriaColors.violeta.main}>
-                      $1.2M
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Este mes
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12}>
-                  <Divider sx={{ my: 1 }} />
-                  <Box display="flex" justifyContent="space-between" py={1}>
-                    <Typography variant="body2" color="text.secondary">
-                      Eficiencia del sistema
-                    </Typography>
-                    <Typography variant="body2" fontWeight={700} color={zentriaColors.verde.main}>
-                      94.5%
-                    </Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" py={1}>
-                    <Typography variant="body2" color="text.secondary">
-                      Ahorro de tiempo estimado
-                    </Typography>
-                    <Typography variant="body2" fontWeight={700} color={zentriaColors.violeta.main}>
-                      156 horas
-                    </Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" py={1}>
-                    <Typography variant="body2" color="text.secondary">
-                      Facturas procesadas hoy
-                    </Typography>
-                    <Typography variant="body2" fontWeight={700}>
-                      23
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    APROBADAS
+                  </Typography>
+                  <Typography variant="h4" fontWeight={800} color={zentriaColors.verde.main}>
+                    {stats.aprobadas}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: zentriaColors.verde.main, width: 56, height: 56 }}>
+                  <CheckCircle />
+                </Avatar>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card
+            sx={{
+              background: `linear-gradient(135deg, ${zentriaColors.naranja.main}10, ${zentriaColors.naranja.main}05)`,
+              border: `1px solid ${zentriaColors.naranja.main}30`,
+            }}
+          >
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    RECHAZADAS
+                  </Typography>
+                  <Typography variant="h4" fontWeight={800} color={zentriaColors.naranja.main}>
+                    {stats.rechazadas}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: zentriaColors.naranja.main, width: 56, height: 56 }}>
+                  <Cancel />
+                </Avatar>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* CSS para animación de refresh */}
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      {/* Filtros y búsqueda */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Buscar por número, NIT o nombre del emisor..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Estado</InputLabel>
+                <Select
+                  value={filterEstado}
+                  label="Estado"
+                  onChange={(e) => setFilterEstado(e.target.value)}
+                >
+                  <MenuItem value="todos">Todos</MenuItem>
+                  <MenuItem value="pendiente">Pendientes</MenuItem>
+                  <MenuItem value="aprobado">Aprobadas</MenuItem>
+                  <MenuItem value="rechazado">Rechazadas</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<Download />}
+                sx={{ height: 56, borderColor: zentriaColors.verde.main, color: zentriaColors.verde.main }}
+              >
+                Exportar
+              </Button>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Tabla de facturas */}
+      <Card>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: zentriaColors.violeta.main }}>
+                <TableCell sx={{ color: 'white', fontWeight: 700 }}>Número</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 700 }}>Emisor</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 700 }}>NIT</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 700 }}>Monto</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 700 }}>Fecha Emisión</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 700 }}>Estado</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 700 }} align="center">
+                  Acciones
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredFacturas && filteredFacturas.length > 0 ? (
+                filteredFacturas
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((factura) => (
+                    <TableRow key={factura?.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>
+                          {factura?.numero_factura || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{factura?.nombre_emisor || '-'}</TableCell>
+                      <TableCell>{factura?.nit_emisor || '-'}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600} color={zentriaColors.verde.main}>
+                        ${factura.monto_total ? Number(factura.monto_total).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '0.00'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {factura.fecha_emision ? new Date(factura.fecha_emision).toLocaleDateString() : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getEstadoLabel(factura.estado)}
+                        color={getEstadoColor(factura.estado)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Ver detalles">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDialog('view', factura)}
+                          sx={{ color: zentriaColors.violeta.main }}
+                        >
+                          <Visibility />
+                        </IconButton>
+                      </Tooltip>
+                      {user?.rol === 'admin' && (
+                        <>
+                          <Tooltip title="Editar">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleOpenDialog('edit', factura)}
+                              sx={{ color: zentriaColors.naranja.main }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Más acciones">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                setAnchorEl(e.currentTarget);
+                                setMenuFactura(factura);
+                              }}
+                            >
+                              <MoreVert />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography variant="body2" color="text.secondary" py={4}>
+                      No hay facturas disponibles
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          component="div"
+          count={filteredFacturas.length}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          labelRowsPerPage="Filas por página:"
+        />
+      </Card>
+
+      {/* Menú contextual */}
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+        {menuFactura?.estado === 'pendiente' && (
+          <MenuItem
+            onClick={() => menuFactura && handleApprove(menuFactura)}
+            sx={{ color: zentriaColors.verde.main }}
+          >
+            <CheckCircle sx={{ mr: 1 }} fontSize="small" />
+            Aprobar
+          </MenuItem>
+        )}
+        {menuFactura?.estado === 'pendiente' && (
+          <MenuItem
+            onClick={() => menuFactura && handleReject(menuFactura)}
+            sx={{ color: zentriaColors.naranja.main }}
+          >
+            <Cancel sx={{ mr: 1 }} fontSize="small" />
+            Rechazar
+          </MenuItem>
+        )}
+        <MenuItem onClick={() => menuFactura && handleDelete(menuFactura)} sx={{ color: 'error.main' }}>
+          <Delete sx={{ mr: 1 }} fontSize="small" />
+          Eliminar
+        </MenuItem>
+      </Menu>
+
+      {/* Dialog para ver/editar/crear */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <DialogTitle
+          sx={{
+            background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
+            color: 'white',
+            fontWeight: 700,
+          }}
+        >
+          {dialogMode === 'view'
+            ? 'Detalles de Factura'
+            : dialogMode === 'edit'
+            ? 'Editar Factura'
+            : 'Nueva Factura'}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Número de Factura"
+                value={formData.numero_factura}
+                onChange={(e) => setFormData({ ...formData, numero_factura: e.target.value })}
+                disabled={dialogMode === 'view'}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="NIT Emisor"
+                value={formData.nit_emisor}
+                onChange={(e) => setFormData({ ...formData, nit_emisor: e.target.value })}
+                disabled={dialogMode === 'view'}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Nombre Emisor"
+                value={formData.nombre_emisor}
+                onChange={(e) => setFormData({ ...formData, nombre_emisor: e.target.value })}
+                disabled={dialogMode === 'view'}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Monto Total"
+                type="number"
+                value={formData.monto_total}
+                onChange={(e) => setFormData({ ...formData, monto_total: e.target.value })}
+                disabled={dialogMode === 'view'}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Fecha Emisión"
+                type="date"
+                value={formData.fecha_emision}
+                onChange={(e) => setFormData({ ...formData, fecha_emision: e.target.value })}
+                disabled={dialogMode === 'view'}
+                InputLabelProps={{ shrink: true }}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Fecha Vencimiento"
+                type="date"
+                value={formData.fecha_vencimiento}
+                onChange={(e) => setFormData({ ...formData, fecha_vencimiento: e.target.value })}
+                disabled={dialogMode === 'view'}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Observaciones"
+                multiline
+                rows={3}
+                value={formData.observaciones}
+                onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
+                disabled={dialogMode === 'view'}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseDialog}>
+            {dialogMode === 'view' ? 'Cerrar' : 'Cancelar'}
+          </Button>
+          {dialogMode !== 'view' && (
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={
+                !formData.numero_factura ||
+                !formData.nit_emisor ||
+                !formData.nombre_emisor ||
+                !formData.monto_total ||
+                !formData.fecha_emision
+              }
+              sx={{
+                background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
+              }}
+            >
+              Guardar
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

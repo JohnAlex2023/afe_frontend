@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '../features/auth/authSlice';
 import facturasReducer from '../features/facturas/facturasSlice';
+import proveedoresReducer from '../features/proveedores/proveedoresSlice';
 
 /**
  * Redux Store Configuration
@@ -11,6 +12,7 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     facturas: facturasReducer,
+    proveedores: proveedoresReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
