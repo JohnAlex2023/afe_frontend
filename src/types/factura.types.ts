@@ -1,0 +1,135 @@
+/**
+ * TypeScript Types para Facturas y Workflow
+ */
+
+export interface Factura {
+  id: number;
+  numero_factura: string;
+  cufe: string;
+  fecha_emision: string | null;
+  proveedor_id: number | null;
+  proveedor?: Proveedor;
+  subtotal: number;
+  iva: number;
+  total: number;
+  total_a_pagar: number;
+  moneda: string;
+  estado: EstadoFactura;
+  observaciones?: string;
+  periodo_factura?: string;
+}
+
+export interface Proveedor {
+  id: number;
+  nit: string;
+  razon_social: string;
+  area?: string;
+}
+
+export interface Workflow {
+  id: number;
+  factura_id: number;
+  factura?: Factura;
+  estado: EstadoWorkflow;
+  tipo_aprobacion?: TipoAprobacion;
+  responsable_id: number;
+  area_responsable?: string;
+  nit_proveedor?: string;
+  es_identica_mes_anterior: boolean;
+  porcentaje_similitud?: number;
+  diferencias_detectadas?: Diferencia[];
+  criterios_comparacion?: Record<string, any>;
+  fecha_aprobacion?: string;
+  aprobado_por?: string;
+  fecha_rechazo?: string;
+  rechazado_por?: string;
+  motivo_rechazo?: string;
+  factura_mes_anterior?: FacturaAnterior;
+  factura_referencia?: Factura;
+}
+
+export interface FacturaAnterior {
+  id: number;
+  numero: string;
+  total: number;
+  fecha?: string;
+}
+
+export interface Diferencia {
+  campo: string;
+  actual: any;
+  anterior: any;
+  variacion_pct?: number;
+}
+
+export interface FacturaConWorkflow {
+  factura: Factura;
+  workflow?: Workflow;
+  tiene_workflow: boolean;
+}
+
+export interface FacturaPendiente extends Workflow {
+  workflow_id: number;
+  numero_factura: string;
+  proveedor: string;
+  nit: string;
+  monto: number;
+  fecha_emision?: string;
+  fecha_asignacion?: string;
+  dias_pendiente: number;
+}
+
+export interface DashboardMetrics {
+  resumen: {
+    total_facturas: number;
+    pendientes_revision: number;
+    aprobadas_auto: number;
+    aprobadas_manual: number;
+    rechazadas: number;
+  };
+  metricas: {
+    tasa_aprobacion_auto: number;
+    tiempo_promedio_aprobacion_horas: number;
+    facturas_vencidas: number;
+  };
+  por_proveedor: ProveedorMetric[];
+}
+
+export interface ProveedorMetric {
+  proveedor: string;
+  nit: string;
+  total_facturas: number;
+  pendientes: number;
+}
+
+export type EstadoFactura =
+  | 'pendiente'
+  | 'en_revision'
+  | 'aprobada'
+  | 'rechazada'
+  | 'aprobada_auto';
+
+export type EstadoWorkflow =
+  | 'recibida'
+  | 'en_analisis'
+  | 'aprobada_auto'
+  | 'pendiente_revision'
+  | 'en_revision'
+  | 'aprobada_manual'
+  | 'rechazada'
+  | 'observada'
+  | 'enviada_contabilidad'
+  | 'procesada';
+
+export type TipoAprobacion = 'automatica' | 'manual';
+
+export interface AprobacionRequest {
+  aprobado_por: string;
+  observaciones?: string;
+}
+
+export interface RechazoRequest {
+  rechazado_por: string;
+  motivo: string;
+  detalle?: string;
+}
