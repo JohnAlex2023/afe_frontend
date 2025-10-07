@@ -111,6 +111,17 @@ export const deleteAsignacion = async (id: number): Promise<void> => {
 };
 
 /**
+ * Obtener todos los responsables (usuarios)
+ */
+export const getResponsables = async (params?: {
+  skip?: number;
+  limit?: number;
+}): Promise<Responsable[]> => {
+  const response = await apiClient.get('/responsables/', { params });
+  return response.data;
+};
+
+/**
  * Obtener todos los responsables asignados a un proveedor
  */
 export const getResponsablesDeProveedor = async (

@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Tab de Gestión de Proveedores
+ * CRUD completo con búsqueda y paginación
+ */
+import React, { useState } from 'react';
 import {
   Box,
-  Typography,
   Button,
   Card,
   Table,
@@ -25,32 +28,33 @@ import {
   FormControlLabel,
   CircularProgress,
   Alert,
+  Typography,
 } from '@mui/material';
 import {
   Add,
   Edit,
   Delete,
   Search,
-  Refresh,
   CheckCircle,
   Cancel,
 } from '@mui/icons-material';
-import { useNotification } from '../../components/Notifications/NotificationProvider';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import {
-  getProveedores,
-  createProveedor,
-  updateProveedor,
-  deleteProveedor,
-  type Proveedor,
-  type ProveedorCreate,
-} from '../../services/proveedores.api';
+  fetchProveedores,
+  createProveedorThunk,
+  updateProveedorThunk,
+  deleteProveedorThunk,
+  selectProveedoresList,
+  selectProveedoresLoading,
+} from '../proveedoresSlice';
+import type { Proveedor, ProveedorCreate } from '../../../services/proveedores.api';
 
-function ProveedoresPage() {
-  const { showNotification } = useNotification();
+function ProveedoresTab() {
+  const dispatch = useAppDispatch();
 
-  // Estados
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  const [loading, setLoading] = useState(false);
+  const proveedores = useAppSelector(selectProveedoresList);
+  const loading = useAppSelector(selectProveedoresLoading);
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchText, setSearchText] = useState('');
@@ -59,7 +63,6 @@ function ProveedoresPage() {
   const [editMode, setEditMode] = useState(false);
   const [selectedProveedor, setSelectedProveedor] = useState<Proveedor | null>(null);
 
-  // Form state
   const [formData, setFormData] = useState<ProveedorCreate>({
     nit: '',
     razon_social: '',
@@ -70,24 +73,6 @@ function ProveedoresPage() {
     activo: true,
   });
 
-  // Cargar proveedores
-  const loadProveedores = async () => {
-    setLoading(true);
-    try {
-      const data = await getProveedores({ skip: 0, limit: 1000 });
-      setProveedores(data);
-    } catch (error: any) {
-      showNotification('Error al cargar proveedores', 'error');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadProveedores();
-  }, []);
-
   // Filtrado
   const filteredProveedores = proveedores.filter((p) =>
     p.nit.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -95,13 +80,11 @@ function ProveedoresPage() {
     p.area?.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  // Paginación
   const paginatedProveedores = filteredProveedores.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
 
-  // Handlers
   const handleOpenDialog = (proveedor?: Proveedor) => {
     if (proveedor) {
       setEditMode(true);
@@ -131,83 +114,38 @@ function ProveedoresPage() {
     setDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditMode(false);
-    setSelectedProveedor(null);
-  };
-
   const handleSubmit = async () => {
     try {
       if (editMode && selectedProveedor) {
-        await updateProveedor(selectedProveedor.id, formData);
-        showNotification('Proveedor actualizado exitosamente', 'success');
+        await dispatch(
+          updateProveedorThunk({ id: selectedProveedor.id, data: formData })
+        ).unwrap();
       } else {
-        await createProveedor(formData);
-        showNotification('Proveedor creado exitosamente', 'success');
+        await dispatch(createProveedorThunk(formData)).unwrap();
       }
-      handleCloseDialog();
-      loadProveedores();
+      setDialogOpen(false);
+      dispatch(fetchProveedores({ skip: 0, limit: 1000 }));
     } catch (error: any) {
-      showNotification(
-        error.response?.data?.detail || 'Error al guardar proveedor',
-        'error'
-      );
-      console.error(error);
+      console.error('Error al guardar proveedor:', error);
     }
-  };
-
-  const handleDeleteClick = (proveedor: Proveedor) => {
-    setSelectedProveedor(proveedor);
-    setDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
     if (!selectedProveedor) return;
 
     try {
-      await deleteProveedor(selectedProveedor.id);
-      showNotification('Proveedor eliminado exitosamente', 'success');
+      await dispatch(deleteProveedorThunk(selectedProveedor.id)).unwrap();
       setDeleteDialogOpen(false);
       setSelectedProveedor(null);
-      loadProveedores();
     } catch (error: any) {
-      showNotification(
-        error.response?.data?.detail || 'Error al eliminar proveedor',
-        'error'
-      );
-      console.error(error);
+      console.error('Error al eliminar proveedor:', error);
     }
   };
 
   return (
     <Box>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" fontWeight="bold">
-          Gestión de Proveedores
-        </Typography>
-        <Box display="flex" gap={2}>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={loadProveedores}
-            disabled={loading}
-          >
-            Refrescar
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog()}
-          >
-            Nuevo Proveedor
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Búsqueda */}
-      <Box mb={3}>
+      {/* Búsqueda y acciones */}
+      <Box display="flex" gap={2} mb={3}>
         <TextField
           fullWidth
           placeholder="Buscar por NIT, razón social o área..."
@@ -221,6 +159,14 @@ function ProveedoresPage() {
             ),
           }}
         />
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => handleOpenDialog()}
+          sx={{ minWidth: 200 }}
+        >
+          Nuevo Proveedor
+        </Button>
       </Box>
 
       {/* Tabla */}
@@ -235,22 +181,20 @@ function ProveedoresPage() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>NIT</TableCell>
-                    <TableCell>Razón Social</TableCell>
-                    <TableCell>Área</TableCell>
-                    <TableCell>Email</TableCell>
-                    <TableCell>Teléfono</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell align="right">Acciones</TableCell>
+                    <TableCell><strong>NIT</strong></TableCell>
+                    <TableCell><strong>Razón Social</strong></TableCell>
+                    <TableCell><strong>Área</strong></TableCell>
+                    <TableCell><strong>Email</strong></TableCell>
+                    <TableCell><strong>Teléfono</strong></TableCell>
+                    <TableCell><strong>Estado</strong></TableCell>
+                    <TableCell align="right"><strong>Acciones</strong></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {paginatedProveedores.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} align="center">
-                        <Typography color="text.secondary">
-                          No se encontraron proveedores
-                        </Typography>
+                        <Alert severity="info">No se encontraron proveedores</Alert>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -294,7 +238,10 @@ function ProveedoresPage() {
                             <IconButton
                               size="small"
                               color="error"
-                              onClick={() => handleDeleteClick(proveedor)}
+                              onClick={() => {
+                                setSelectedProveedor(proveedor);
+                                setDeleteDialogOpen(true);
+                              }}
                             >
                               <Delete />
                             </IconButton>
@@ -324,7 +271,7 @@ function ProveedoresPage() {
       </Card>
 
       {/* Dialog Crear/Editar */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           {editMode ? 'Editar Proveedor' : 'Nuevo Proveedor'}
         </DialogTitle>
@@ -362,7 +309,7 @@ function ProveedoresPage() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Email de Contacto"
+                label="Email"
                 type="email"
                 value={formData.contacto_email}
                 onChange={(e) =>
@@ -406,7 +353,7 @@ function ProveedoresPage() {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button onClick={() => setDialogOpen(false)}>Cancelar</Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
@@ -441,4 +388,4 @@ function ProveedoresPage() {
   );
 }
 
-export default ProveedoresPage;
+export default ProveedoresTab;

@@ -32,6 +32,8 @@ import {
   FormControl,
   InputLabel,
   Select,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   Search,
@@ -87,11 +89,14 @@ function DashboardPage() {
     aprobadas: 0,
     rechazadas: 0,
   });
+  const [totalTodasFacturas, setTotalTodasFacturas] = useState(0); // Total de TODAS las facturas
+  const [totalAsignadas, setTotalAsignadas] = useState(0); // Total de facturas ASIGNADAS
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState('todos');
+  const [vistaFacturas, setVistaFacturas] = useState<'todas' | 'asignadas'>('todas'); // Vista para admin
   const [selectedFactura, setSelectedFactura] = useState<Factura | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'view' | 'edit' | 'create'>('view');
@@ -111,28 +116,69 @@ function DashboardPage() {
 
   useEffect(() => {
     loadData();
-  }, [filterEstado]);
+  }, [filterEstado, vistaFacturas]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/facturas/');
-      const allFacturas = response.data;
+      // Si es admin, cargar ambos totales en paralelo
+      if (user?.rol === 'admin') {
+        const [todasResponse, asignadasResponse] = await Promise.all([
+          apiClient.get('/facturas/'), // Todas las facturas
+          apiClient.get('/facturas/', { params: { solo_asignadas: true } }), // Solo asignadas
+        ]);
 
-      // Filtrar por estado
-      const filtered = filterEstado === 'todos'
-        ? allFacturas
-        : allFacturas.filter((f: Factura) => f.estado === filterEstado);
+        setTotalTodasFacturas(todasResponse.data.length);
+        setTotalAsignadas(asignadasResponse.data.length);
 
-      setFacturas(filtered);
+        // Usar los datos según la vista seleccionada
+        const allFacturas = vistaFacturas === 'todas' ? todasResponse.data : asignadasResponse.data;
 
-      // Calcular estadísticas
-      setStats({
-        total: allFacturas.length,
-        pendientes: allFacturas.filter((f: Factura) => f.estado === 'pendiente').length,
-        aprobadas: allFacturas.filter((f: Factura) => f.estado === 'aprobado').length,
-        rechazadas: allFacturas.filter((f: Factura) => f.estado === 'rechazado').length,
-      });
+        // Filtrar por estado
+        const filtered = filterEstado === 'todos'
+          ? allFacturas
+          : allFacturas.filter((f: Factura) => f.estado === filterEstado);
+
+        setFacturas(filtered);
+
+        // Calcular estadísticas (incluir aprobadas manuales y automáticas)
+        setStats({
+          total: allFacturas.length,
+          pendientes: allFacturas.filter((f: Factura) => f.estado === 'pendiente').length,
+          aprobadas: allFacturas.filter((f: Factura) =>
+            f.estado === 'aprobada' || f.estado === 'aprobado' || f.estado === 'aprobada_auto'
+          ).length,
+          rechazadas: allFacturas.filter((f: Factura) =>
+            f.estado === 'rechazada' || f.estado === 'rechazado'
+          ).length,
+        });
+      } else {
+        // Responsable solo ve sus facturas asignadas
+        const response = await apiClient.get('/facturas/');
+        const allFacturas = response.data;
+
+        setTotalAsignadas(allFacturas.length);
+        setTotalTodasFacturas(allFacturas.length); // Para responsable es lo mismo
+
+        // Filtrar por estado
+        const filtered = filterEstado === 'todos'
+          ? allFacturas
+          : allFacturas.filter((f: Factura) => f.estado === filterEstado);
+
+        setFacturas(filtered);
+
+        // Calcular estadísticas (incluir aprobadas manuales y automáticas)
+        setStats({
+          total: allFacturas.length,
+          pendientes: allFacturas.filter((f: Factura) => f.estado === 'pendiente').length,
+          aprobadas: allFacturas.filter((f: Factura) =>
+            f.estado === 'aprobada' || f.estado === 'aprobado' || f.estado === 'aprobada_auto'
+          ).length,
+          rechazadas: allFacturas.filter((f: Factura) =>
+            f.estado === 'rechazada' || f.estado === 'rechazado'
+          ).length,
+        });
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al cargar facturas');
     } finally {
@@ -251,11 +297,17 @@ function DashboardPage() {
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'aprobado':
+      case 'aprobada':
         return 'success';
+      case 'aprobada_auto':
+        return 'info';
       case 'rechazado':
+      case 'rechazada':
         return 'error';
       case 'pendiente':
         return 'warning';
+      case 'en_revision':
+        return 'default';
       default:
         return 'default';
     }
@@ -264,11 +316,17 @@ function DashboardPage() {
   const getEstadoLabel = (estado: string) => {
     switch (estado) {
       case 'aprobado':
+      case 'aprobada':
         return 'Aprobado';
+      case 'aprobada_auto':
+        return 'Aprobado Auto';
       case 'rechazado':
+      case 'rechazada':
         return 'Rechazado';
       case 'pendiente':
         return 'Pendiente';
+      case 'en_revision':
+        return 'En Revisión';
       default:
         return estado;
     }
@@ -430,50 +488,228 @@ function DashboardPage() {
         </Grid>
       </Grid>
 
-      {/* Filtros y búsqueda */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6}>
+      {/* Filtros y búsqueda - Diseño UX Profesional */}
+      <Card sx={{ mb: 3, boxShadow: '0 2px 12px rgba(0,0,0,0.08)', borderRadius: 2 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Grid container spacing={3}>
+            {/* Fila 1: Buscador y Filtro de Estado */}
+            <Grid item xs={12} md={7}>
               <TextField
                 fullWidth
-                placeholder="Buscar por número, NIT o nombre del emisor..."
+                placeholder="Buscar factura..."
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    height: 56,
+                    backgroundColor: '#ffffff',
+                    border: '2px solid #e9ecef',
+                    borderRadius: '12px',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      border: `2px solid ${zentriaColors.violeta.main}40`,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    },
+                    '&.Mui-focused': {
+                      border: `2px solid ${zentriaColors.violeta.main}`,
+                      boxShadow: `0 0 0 3px ${zentriaColors.violeta.main}20`,
+                    },
+                    '& fieldset': {
+                      border: 'none',
+                    },
+                  },
+                  '& .MuiInputBase-input': {
+                    fontSize: '0.95rem',
+                    fontWeight: 500,
+                    color: '#2d3748',
+                    '&::placeholder': {
+                      color: '#a0aec0',
+                      opacity: 1,
+                    },
+                  },
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Search />
+                      <Search sx={{ color: zentriaColors.violeta.main, fontSize: 24 }} />
                     </InputAdornment>
                   ),
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={5}>
               <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
                 <Select
                   value={filterEstado}
-                  label="Estado"
                   onChange={(e) => setFilterEstado(e.target.value)}
+                  displayEmpty
+                  sx={{
+                    height: 56,
+                    backgroundColor: '#ffffff',
+                    border: '2px solid #e9ecef',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                    transition: 'all 0.3s ease',
+                    '& fieldset': {
+                      border: 'none',
+                    },
+                    '&:hover': {
+                      border: `2px solid ${zentriaColors.violeta.main}40`,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    },
+                    '&.Mui-focused': {
+                      border: `2px solid ${zentriaColors.violeta.main}`,
+                      boxShadow: `0 0 0 3px ${zentriaColors.violeta.main}20`,
+                    },
+                  }}
                 >
-                  <MenuItem value="todos">Todos</MenuItem>
-                  <MenuItem value="pendiente">Pendientes</MenuItem>
-                  <MenuItem value="aprobado">Aprobadas</MenuItem>
-                  <MenuItem value="rechazado">Rechazadas</MenuItem>
+                  <MenuItem value="todos" sx={{ fontWeight: 600 }}>
+                    📊 Todos los estados
+                  </MenuItem>
+                  <MenuItem value="pendiente" sx={{ fontWeight: 600 }}>
+                    ⏳ Pendientes
+                  </MenuItem>
+                  <MenuItem value="en_revision" sx={{ fontWeight: 600 }}>
+                    🔍 En Revisión
+                  </MenuItem>
+                  <MenuItem value="aprobada" sx={{ fontWeight: 600 }}>
+                    ✅ Aprobadas
+                  </MenuItem>
+                  <MenuItem value="aprobada_auto" sx={{ fontWeight: 600 }}>
+                    🤖 Aprobadas Automáticamente
+                  </MenuItem>
+                  <MenuItem value="rechazada" sx={{ fontWeight: 600 }}>
+                    ❌ Rechazadas
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<Download />}
-                sx={{ height: 56, borderColor: zentriaColors.verde.main, color: zentriaColors.verde.main }}
-              >
-                Exportar
-              </Button>
-            </Grid>
+
+            {/* Divider visual */}
+            {user?.rol === 'admin' && (
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+              </Grid>
+            )}
+
+            {/* Fila 2: Botones de Vista (Admin) - Separados */}
+            {user?.rol === 'admin' && (
+              <>
+                <Grid item xs={12} md={5}>
+                  <Button
+                    fullWidth
+                    variant={vistaFacturas === 'todas' ? 'contained' : 'outlined'}
+                    onClick={() => setVistaFacturas('todas')}
+                    sx={{
+                      height: 56,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      fontSize: '0.95rem',
+                      borderRadius: '12px',
+                      border: `2px solid ${zentriaColors.violeta.main}`,
+                      backgroundColor: vistaFacturas === 'todas' ? zentriaColors.violeta.main : 'transparent',
+                      color: vistaFacturas === 'todas' ? 'white' : zentriaColors.violeta.main,
+                      boxShadow: vistaFacturas === 'todas' ? '0 4px 12px rgba(138, 43, 226, 0.3)' : 'none',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        backgroundColor: vistaFacturas === 'todas'
+                          ? zentriaColors.violeta.dark
+                          : `${zentriaColors.violeta.main}15`,
+                        border: `2px solid ${zentriaColors.violeta.dark}`,
+                        boxShadow: '0 4px 12px rgba(138, 43, 226, 0.3)',
+                        transform: 'translateY(-2px)',
+                      },
+                    }}
+                  >
+                    📋 Todas las Facturas ({totalTodasFacturas})
+                  </Button>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Button
+                    fullWidth
+                    variant={vistaFacturas === 'asignadas' ? 'contained' : 'outlined'}
+                    onClick={() => setVistaFacturas('asignadas')}
+                    sx={{
+                      height: 56,
+                      textTransform: 'none',
+                      fontWeight: 700,
+                      fontSize: '0.95rem',
+                      borderRadius: '12px',
+                      border: `2px solid ${zentriaColors.violeta.main}`,
+                      backgroundColor: vistaFacturas === 'asignadas' ? zentriaColors.violeta.main : 'transparent',
+                      color: vistaFacturas === 'asignadas' ? 'white' : zentriaColors.violeta.main,
+                      boxShadow: vistaFacturas === 'asignadas' ? '0 4px 12px rgba(138, 43, 226, 0.3)' : 'none',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        backgroundColor: vistaFacturas === 'asignadas'
+                          ? zentriaColors.violeta.dark
+                          : `${zentriaColors.violeta.main}15`,
+                        border: `2px solid ${zentriaColors.violeta.dark}`,
+                        boxShadow: '0 4px 12px rgba(138, 43, 226, 0.3)',
+                        transform: 'translateY(-2px)',
+                      },
+                    }}
+                  >
+                    👤 Facturas Asignadas ({totalAsignadas})
+                  </Button>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<Download />}
+                    sx={{
+                      height: 56,
+                      borderRadius: '12px',
+                      border: `2px solid ${zentriaColors.verde.main}`,
+                      color: zentriaColors.verde.main,
+                      fontWeight: 700,
+                      textTransform: 'none',
+                      fontSize: '0.95rem',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        border: `2px solid ${zentriaColors.verde.dark}`,
+                        backgroundColor: `${zentriaColors.verde.main}15`,
+                        boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)',
+                        transform: 'translateY(-2px)',
+                      },
+                    }}
+                  >
+                    Exportar
+                  </Button>
+                </Grid>
+              </>
+            )}
+
+            {/* Botón Exportar para Responsable */}
+            {user?.rol !== 'admin' && (
+              <Grid item xs={12}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<Download />}
+                  sx={{
+                    height: 56,
+                    borderRadius: '12px',
+                    border: `2px solid ${zentriaColors.verde.main}`,
+                    color: zentriaColors.verde.main,
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    fontSize: '0.95rem',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      border: `2px solid ${zentriaColors.verde.dark}`,
+                      backgroundColor: `${zentriaColors.verde.main}15`,
+                      boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)',
+                      transform: 'translateY(-2px)',
+                    },
+                  }}
+                >
+                  Exportar Datos
+                </Button>
+              </Grid>
+            )}
           </Grid>
         </CardContent>
       </Card>

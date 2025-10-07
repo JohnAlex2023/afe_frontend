@@ -23,9 +23,6 @@ import {
   Logout as LogoutIcon,
   AccountCircle,
   People as PeopleIcon,
-  Business as BusinessIcon,
-  AdminPanelSettings as AdminIcon,
-  Link as LinkIcon,
   Store as StoreIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -44,13 +41,7 @@ const baseMenuItems = [
 // Menús adicionales para administradores
 const adminMenuItems = [
   { text: 'Responsables', icon: <PeopleIcon />, path: '/admin/responsables', roles: ['admin'] },
-  { text: 'Proveedores', icon: <BusinessIcon />, path: '/admin/proveedores', roles: ['admin'] },
-];
-
-// Menús de gestión avanzada
-const gestionMenuItems = [
   { text: 'Gestión de Proveedores', icon: <StoreIcon />, path: '/gestion/proveedores', roles: ['admin'] },
-  { text: 'Asignaciones', icon: <LinkIcon />, path: '/gestion/asignaciones', roles: ['admin'] },
 ];
 
 /**
@@ -85,7 +76,7 @@ function MainLayout() {
 
   // Filtrar menús según el rol del usuario
   const allMenuItems = user?.rol === 'admin'
-    ? [...baseMenuItems, ...adminMenuItems, ...gestionMenuItems]
+    ? [...baseMenuItems, ...adminMenuItems]
     : baseMenuItems;
   const filteredMenuItems = allMenuItems.filter(item => user && item.roles.includes(user.rol));
 
