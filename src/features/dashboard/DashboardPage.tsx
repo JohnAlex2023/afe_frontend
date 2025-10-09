@@ -49,6 +49,8 @@ import {
   Download,
   MoreVert,
   AttachFile,
+  RemoveRedEye,
+  SmartToy,
 } from '@mui/icons-material';
 import { useAppSelector } from '../../app/hooks';
 import { zentriaColors } from '../../theme/colors';
@@ -72,7 +74,9 @@ interface Factura {
 interface DashboardStats {
   total: number;
   pendientes: number;
+  en_revision: number;
   aprobadas: number;
+  aprobadas_auto: number;
   rechazadas: number;
 }
 
@@ -86,7 +90,9 @@ function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
     total: 0,
     pendientes: 0,
+    en_revision: 0,
     aprobadas: 0,
+    aprobadas_auto: 0,
     rechazadas: 0,
   });
   const [totalTodasFacturas, setTotalTodasFacturas] = useState(0); // Total de TODAS las facturas
@@ -124,15 +130,19 @@ function DashboardPage() {
       // Si es admin, cargar ambos totales en paralelo
       if (user?.rol === 'admin') {
         const [todasResponse, asignadasResponse] = await Promise.all([
-          apiClient.get('/facturas/'), // Todas las facturas
-          apiClient.get('/facturas/', { params: { solo_asignadas: true } }), // Solo asignadas
+          apiClient.get('/facturas/', { params: { page: 1, per_page: 2000 } }), // Todas las facturas
+          apiClient.get('/facturas/', { params: { solo_asignadas: true, page: 1, per_page: 2000 } }), // Solo asignadas
         ]);
 
-        setTotalTodasFacturas(todasResponse.data.length);
-        setTotalAsignadas(asignadasResponse.data.length);
+        // ✅ CORRECCIÓN: Ahora el backend devuelve { data: [...], pagination: {...} }
+        const todasFacturasData = todasResponse.data.data || [];
+        const asignadasData = asignadasResponse.data.data || [];
+
+        setTotalTodasFacturas(todasResponse.data.pagination?.total || todasFacturasData.length);
+        setTotalAsignadas(asignadasResponse.data.pagination?.total || asignadasData.length);
 
         // Usar los datos según la vista seleccionada
-        const allFacturas = vistaFacturas === 'todas' ? todasResponse.data : asignadasResponse.data;
+        const allFacturas = vistaFacturas === 'todas' ? todasFacturasData : asignadasData;
 
         // Filtrar por estado
         const filtered = filterEstado === 'todos'
@@ -141,24 +151,28 @@ function DashboardPage() {
 
         setFacturas(filtered);
 
-        // Calcular estadísticas (incluir aprobadas manuales y automáticas)
+        // Calcular estadísticas (separar aprobadas manuales y automáticas)
         setStats({
           total: allFacturas.length,
           pendientes: allFacturas.filter((f: Factura) => f.estado === 'pendiente').length,
+          en_revision: allFacturas.filter((f: Factura) => f.estado === 'en_revision').length,
           aprobadas: allFacturas.filter((f: Factura) =>
-            f.estado === 'aprobada' || f.estado === 'aprobado' || f.estado === 'aprobada_auto'
+            f.estado === 'aprobada' || f.estado === 'aprobado'
           ).length,
+          aprobadas_auto: allFacturas.filter((f: Factura) => f.estado === 'aprobada_auto').length,
           rechazadas: allFacturas.filter((f: Factura) =>
             f.estado === 'rechazada' || f.estado === 'rechazado'
           ).length,
         });
       } else {
         // Responsable solo ve sus facturas asignadas
-        const response = await apiClient.get('/facturas/');
-        const allFacturas = response.data;
+        const response = await apiClient.get('/facturas/', { params: { page: 1, per_page: 2000 } });
 
-        setTotalAsignadas(allFacturas.length);
-        setTotalTodasFacturas(allFacturas.length); // Para responsable es lo mismo
+        // ✅ CORRECCIÓN: Ahora el backend devuelve { data: [...], pagination: {...} }
+        const allFacturas = response.data.data || [];
+
+        setTotalAsignadas(response.data.pagination?.total || allFacturas.length);
+        setTotalTodasFacturas(response.data.pagination?.total || allFacturas.length); // Para responsable es lo mismo
 
         // Filtrar por estado
         const filtered = filterEstado === 'todos'
@@ -167,13 +181,15 @@ function DashboardPage() {
 
         setFacturas(filtered);
 
-        // Calcular estadísticas (incluir aprobadas manuales y automáticas)
+        // Calcular estadísticas (separar aprobadas manuales y automáticas)
         setStats({
           total: allFacturas.length,
           pendientes: allFacturas.filter((f: Factura) => f.estado === 'pendiente').length,
+          en_revision: allFacturas.filter((f: Factura) => f.estado === 'en_revision').length,
           aprobadas: allFacturas.filter((f: Factura) =>
-            f.estado === 'aprobada' || f.estado === 'aprobado' || f.estado === 'aprobada_auto'
+            f.estado === 'aprobada' || f.estado === 'aprobado'
           ).length,
+          aprobadas_auto: allFacturas.filter((f: Factura) => f.estado === 'aprobada_auto').length,
           rechazadas: allFacturas.filter((f: Factura) =>
             f.estado === 'rechazada' || f.estado === 'rechazado'
           ).length,
@@ -294,6 +310,23 @@ function DashboardPage() {
     }
   };
 
+  const handleExport = () => {
+    // Construir URL de exportación
+    const params = new URLSearchParams();
+
+    if (filterEstado !== 'todos') {
+      params.append('estado', filterEstado);
+    }
+
+    if (user?.rol === 'admin' && vistaFacturas === 'asignadas') {
+      params.append('solo_asignadas', 'true');
+    }
+
+    // Descargar CSV
+    const url = `/facturas/export/csv${params.toString() ? '?' + params.toString() : ''}`;
+    window.location.href = apiClient.defaults.baseURL + url;
+  };
+
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'aprobado':
@@ -387,7 +420,7 @@ function DashboardPage() {
 
       {/* Estadísticas */}
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card
             sx={{
               background: `linear-gradient(135deg, ${zentriaColors.violeta.main}10, ${zentriaColors.violeta.main}05)`,
@@ -412,7 +445,7 @@ function DashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card
             sx={{
               background: `linear-gradient(135deg, ${zentriaColors.amarillo.dark}10, ${zentriaColors.amarillo.dark}05)`,
@@ -437,7 +470,32 @@ function DashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card
+            sx={{
+              background: `linear-gradient(135deg, #3b82f610, #3b82f605)`,
+              border: `1px solid #3b82f630`,
+            }}
+          >
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    EN REVISIÓN
+                  </Typography>
+                  <Typography variant="h4" fontWeight={800} color="#3b82f6">
+                    {stats.en_revision}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: '#3b82f6', width: 56, height: 56 }}>
+                  <RemoveRedEye />
+                </Avatar>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card
             sx={{
               background: `linear-gradient(135deg, ${zentriaColors.verde.main}10, ${zentriaColors.verde.main}05)`,
@@ -462,7 +520,32 @@ function DashboardPage() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} md={2.4}>
+          <Card
+            sx={{
+              background: `linear-gradient(135deg, #06b6d410, #06b6d405)`,
+              border: `1px solid #06b6d430`,
+            }}
+          >
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    APROBADAS AUTO
+                  </Typography>
+                  <Typography variant="h4" fontWeight={800} color="#06b6d4">
+                    {stats.aprobadas_auto}
+                  </Typography>
+                </Box>
+                <Avatar sx={{ bgcolor: '#06b6d4', width: 56, height: 56 }}>
+                  <SmartToy />
+                </Avatar>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card
             sx={{
               background: `linear-gradient(135deg, ${zentriaColors.naranja.main}10, ${zentriaColors.naranja.main}05)`,
@@ -659,6 +742,7 @@ function DashboardPage() {
                     fullWidth
                     variant="outlined"
                     startIcon={<Download />}
+                    onClick={handleExport}
                     sx={{
                       height: 56,
                       borderRadius: '12px',
@@ -689,6 +773,7 @@ function DashboardPage() {
                   fullWidth
                   variant="outlined"
                   startIcon={<Download />}
+                  onClick={handleExport}
                   sx={{
                     height: 56,
                     borderRadius: '12px',
