@@ -6,6 +6,8 @@ import DashboardPage from './features/dashboard/DashboardPage';
 import FacturasPage from './features/facturas/FacturasPage';
 import ResponsablesPage from './features/admin/ResponsablesPage';
 import ProveedoresManagementPage from './features/proveedores/ProveedoresManagementPage';
+import EmailConfigPage from './features/email-config/EmailConfigPage';
+import CuentaDetailPage from './features/email-config/CuentaDetailPage';
 import RoleGuard from './components/Auth/RoleGuard';
 
 /**
@@ -57,6 +59,24 @@ function AppRoutes() {
           element={
             <RoleGuard allowedRoles={['admin']}>
               <ProveedoresManagementPage />
+            </RoleGuard>
+          }
+        />
+
+        {/* Configuración de Correos - solo para admin */}
+        <Route
+          path="email-config"
+          element={
+            <RoleGuard allowedRoles={['admin']}>
+              <EmailConfigPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="email-config/:id"
+          element={
+            <RoleGuard allowedRoles={['admin']}>
+              <CuentaDetailPage />
             </RoleGuard>
           }
         />

@@ -24,6 +24,7 @@ import {
   AccountCircle,
   People as PeopleIcon,
   Store as StoreIcon,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
@@ -42,6 +43,7 @@ const baseMenuItems = [
 const adminMenuItems = [
   { text: 'Responsables', icon: <PeopleIcon />, path: '/admin/responsables', roles: ['admin'] },
   { text: 'Gestión de Proveedores', icon: <StoreIcon />, path: '/gestion/proveedores', roles: ['admin'] },
+  { text: 'Configuración de Correos', icon: <EmailIcon />, path: '/email-config', roles: ['admin'] },
 ];
 
 /**
