@@ -114,8 +114,8 @@ const EmailConfigPage: React.FC = () => {
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box>
-            <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-              📧 Configuración de Correos
+            <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, color: 'text.primary' }}>
+              Configuración de Correos
             </Typography>
             <Typography variant="body1" color="text.secondary">
               Gestiona las cuentas de correo corporativo y los NITs para extracción de facturas
@@ -140,74 +140,150 @@ const EmailConfigPage: React.FC = () => {
         </Box>
 
         {/* Estadísticas Globales */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Card
+              elevation={0}
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: 3,
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 12px 24px rgba(102, 126, 234, 0.3)',
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box>
-                    <Typography variant="h3" sx={{ color: 'white', fontWeight: 700 }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)', mb: 1, fontWeight: 500, letterSpacing: 0.5 }}>
+                      CUENTAS TOTALES
+                    </Typography>
+                    <Typography variant="h3" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>
                       {totalCuentas}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                      Cuentas Totales
-                    </Typography>
                   </Box>
-                  <EmailIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)' }} />
+                  <Box sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    borderRadius: 2,
+                    p: 1.5,
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <EmailIcon sx={{ fontSize: 32, color: 'white' }} />
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Card
+              elevation={0}
+              sx={{
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                border: 'none',
+                borderRadius: 3,
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 12px 24px rgba(240, 147, 251, 0.3)',
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box>
-                    <Typography variant="h3" sx={{ color: 'white', fontWeight: 700 }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)', mb: 1, fontWeight: 500, letterSpacing: 0.5 }}>
+                      CUENTAS ACTIVAS
+                    </Typography>
+                    <Typography variant="h3" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>
                       {cuentasActivas}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                      Cuentas Activas
-                    </Typography>
                   </Box>
-                  <ActiveIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)' }} />
+                  <Box sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    borderRadius: 2,
+                    p: 1.5,
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <ActiveIcon sx={{ fontSize: 32, color: 'white' }} />
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Card
+              elevation={0}
+              sx={{
+                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                border: 'none',
+                borderRadius: 3,
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 12px 24px rgba(79, 172, 254, 0.3)',
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box>
-                    <Typography variant="h3" sx={{ color: 'white', fontWeight: 700 }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)', mb: 1, fontWeight: 500, letterSpacing: 0.5 }}>
+                      NITS CONFIGURADOS
+                    </Typography>
+                    <Typography variant="h3" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>
                       {totalNits}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                      NITs Configurados
-                    </Typography>
                   </Box>
-                  <NumbersIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)' }} />
+                  <Box sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    borderRadius: 2,
+                    p: 1.5,
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <NumbersIcon sx={{ fontSize: 32, color: 'white' }} />
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Card
+              elevation={0}
+              sx={{
+                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                border: 'none',
+                borderRadius: 3,
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 12px 24px rgba(67, 233, 123, 0.3)',
+                }
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <Box>
-                    <Typography variant="h3" sx={{ color: 'white', fontWeight: 700 }}>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.85)', mb: 1, fontWeight: 500, letterSpacing: 0.5 }}>
+                      NITS ACTIVOS
+                    </Typography>
+                    <Typography variant="h3" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>
                       {totalNitsActivos}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>
-                      NITs Activos
-                    </Typography>
                   </Box>
-                  <TrendingUpIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)' }} />
+                  <Box sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    borderRadius: 2,
+                    p: 1.5,
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <TrendingUpIcon sx={{ fontSize: 32, color: 'white' }} />
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
@@ -215,19 +291,34 @@ const EmailConfigPage: React.FC = () => {
         </Grid>
 
         {/* Filtros y Búsqueda */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Grid container spacing={2} alignItems="center">
+        <Card
+          elevation={0}
+          sx={{
+            mb: 4,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 3
+          }}
+        >
+          <CardContent sx={{ p: 3 }}>
+            <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
                   placeholder="Buscar por email, nombre o organización..."
                   value={searchLocal}
                   onChange={(e) => setSearchLocal(e.target.value)}
+                  variant="outlined"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      bgcolor: 'background.default',
+                    }
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <SearchIcon />
+                        <SearchIcon color="action" />
                       </InputAdornment>
                     ),
                   }}
@@ -245,12 +336,15 @@ const EmailConfigPage: React.FC = () => {
                         color="success"
                       />
                     }
-                    label="Solo activas"
+                    label={<Typography variant="body2" fontWeight={500}>Solo activas</Typography>}
                   />
                   <Chip
                     label={`${cuentasFiltradas.length} resultado${cuentasFiltradas.length !== 1 ? 's' : ''}`}
                     color="primary"
-                    variant="outlined"
+                    sx={{
+                      fontWeight: 600,
+                      px: 1
+                    }}
                   />
                 </Stack>
               </Grid>
@@ -279,15 +373,22 @@ const EmailConfigPage: React.FC = () => {
           {cuentasFiltradas.map((cuenta) => (
             <Grid item xs={12} key={cuenta.id}>
               <Card
+                elevation={0}
                 sx={{
-                  transition: 'all 0.3s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 6,
-                  },
-                  border: cuenta.activa ? '2px solid #4caf50' : '2px solid #f44336',
+                  transition: 'all 0.3s ease-in-out',
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: cuenta.activa ? 'success.light' : 'error.light',
+                  borderLeft: '6px solid',
+                  borderLeftColor: cuenta.activa ? 'success.main' : 'error.main',
                   position: 'relative',
                   overflow: 'visible',
+                  bgcolor: 'background.paper',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
+                    borderColor: cuenta.activa ? 'success.main' : 'error.main',
+                  },
                 }}
               >
                 {/* Badge de estado en la esquina */}
@@ -298,36 +399,67 @@ const EmailConfigPage: React.FC = () => {
                   sx={{
                     position: 'absolute',
                     top: -12,
-                    right: 20,
+                    right: 24,
                     fontWeight: 700,
+                    fontSize: '0.75rem',
+                    letterSpacing: 0.5,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   }}
                 />
 
-                <CardContent sx={{ p: 3 }}>
-                  <Grid container spacing={3} alignItems="center">
+                <CardContent sx={{ p: 4 }}>
+                  <Grid container spacing={4} alignItems="center">
                     {/* Columna 1: Información Principal */}
                     <Grid item xs={12} md={5}>
-                      <Stack spacing={1}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <EmailIcon color="primary" sx={{ fontSize: 28 }} />
-                          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            {cuenta.email}
-                          </Typography>
+                      <Stack spacing={2}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Box
+                            sx={{
+                              bgcolor: 'primary.50',
+                              borderRadius: 2,
+                              p: 1.5,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <EmailIcon color="primary" sx={{ fontSize: 28 }} />
+                          </Box>
+                          <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                              {cuenta.email}
+                            </Typography>
+                            {cuenta.nombre_descriptivo && (
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 400 }}>
+                                {cuenta.nombre_descriptivo}
+                              </Typography>
+                            )}
+                          </Box>
                         </Box>
-                        {cuenta.nombre_descriptivo && (
-                          <Typography variant="body2" color="text.secondary">
-                            {cuenta.nombre_descriptivo}
-                          </Typography>
-                        )}
-                        {cuenta.organizacion && (
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {cuenta.organizacion && (
+                            <Chip
+                              icon={<BusinessIcon sx={{ fontSize: 16 }} />}
+                              label={cuenta.organizacion}
+                              size="small"
+                              variant="outlined"
+                              sx={{
+                                fontWeight: 500,
+                                borderRadius: 2,
+                              }}
+                            />
+                          )}
                           <Chip
-                            icon={<BusinessIcon />}
-                            label={cuenta.organizacion}
+                            label={`Creada ${formatDistanceToNow(new Date(cuenta.creada_en), { addSuffix: true, locale: es })}`}
                             size="small"
                             variant="outlined"
-                            sx={{ alignSelf: 'flex-start' }}
+                            sx={{
+                              fontWeight: 400,
+                              borderRadius: 2,
+                              borderColor: 'divider',
+                            }}
                           />
-                        )}
+                        </Stack>
                       </Stack>
                     </Grid>
 
@@ -335,39 +467,70 @@ const EmailConfigPage: React.FC = () => {
                     <Grid item xs={12} md={4}>
                       <Grid container spacing={2}>
                         <Grid item xs={6}>
-                          <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'primary.50', borderRadius: 2 }}>
-                            <Typography variant="h4" color="primary" sx={{ fontWeight: 700 }}>
+                          <Box
+                            sx={{
+                              textAlign: 'center',
+                              p: 2.5,
+                              bgcolor: 'primary.50',
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: 'primary.100',
+                              transition: 'all 0.2s',
+                              '&:hover': {
+                                bgcolor: 'primary.100',
+                                transform: 'scale(1.05)',
+                              }
+                            }}
+                          >
+                            <Typography variant="h4" color="primary.main" sx={{ fontWeight: 700, mb: 0.5 }}>
                               {cuenta.total_nits}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                               NITs Totales
                             </Typography>
                           </Box>
                         </Grid>
                         <Grid item xs={6}>
-                          <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'success.50', borderRadius: 2 }}>
-                            <Typography variant="h4" color="success.main" sx={{ fontWeight: 700 }}>
+                          <Box
+                            sx={{
+                              textAlign: 'center',
+                              p: 2.5,
+                              bgcolor: 'success.50',
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: 'success.100',
+                              transition: 'all 0.2s',
+                              '&:hover': {
+                                bgcolor: 'success.100',
+                                transform: 'scale(1.05)',
+                              }
+                            }}
+                          >
+                            <Typography variant="h4" color="success.main" sx={{ fontWeight: 700, mb: 0.5 }}>
                               {cuenta.total_nits_activos}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                               NITs Activos
                             </Typography>
                           </Box>
                         </Grid>
                       </Grid>
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
-                        Creada {formatDistanceToNow(new Date(cuenta.creada_en), { addSuffix: true, locale: es })}
-                      </Typography>
                     </Grid>
 
                     {/* Columna 3: Acciones */}
                     <Grid item xs={12} md={3}>
-                      <Stack spacing={1}>
+                      <Stack spacing={1.5}>
                         <Button
                           variant="contained"
                           startIcon={<ViewIcon />}
                           onClick={() => navigate(`/email-config/${cuenta.id}`)}
                           fullWidth
+                          sx={{
+                            py: 1.25,
+                            fontWeight: 600,
+                            borderRadius: 2,
+                            textTransform: 'none',
+                          }}
                         >
                           Ver Detalles
                         </Button>
@@ -377,7 +540,12 @@ const EmailConfigPage: React.FC = () => {
                           startIcon={cuenta.activa ? <InactiveIcon /> : <ActiveIcon />}
                           onClick={() => handleToggleActiva(cuenta.id, cuenta.activa)}
                           fullWidth
-                          size="small"
+                          sx={{
+                            py: 1,
+                            fontWeight: 500,
+                            borderRadius: 2,
+                            textTransform: 'none',
+                          }}
                         >
                           {cuenta.activa ? 'Desactivar' : 'Activar'}
                         </Button>
