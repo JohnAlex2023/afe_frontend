@@ -1,6 +1,5 @@
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   Button,
@@ -9,13 +8,29 @@ import {
   Grid,
   Divider,
   Chip,
-  Table,
-  TableBody,
-  TableRow,
-  TableCell,
   Alert,
+  Paper,
+  LinearProgress,
+  IconButton,
+  Stack,
+  Card,
+  CardContent,
 } from '@mui/material';
-import { Close, CheckCircle, Warning } from '@mui/icons-material';
+import {
+  Close,
+  CheckCircle,
+  Warning,
+  CalendarToday,
+  Receipt,
+  Store,
+  AttachMoney,
+  TrendingUp,
+  TrendingDown,
+  TrendingFlat,
+  Schedule,
+  AccountBalance,
+  Description,
+} from '@mui/icons-material';
 import type { Workflow, ContextoHistorico } from '../../types/factura.types';
 import { zentriaColors } from '../../theme/colors';
 import ContextoHistoricoCard from '../ContextoHistorico';
@@ -28,8 +43,8 @@ interface FacturaDetailModalProps {
 }
 
 /**
- * Modal para mostrar detalles completos de una factura
- * con comparación lado a lado cuando hay similitud
+ * Modal Profesional para mostrar detalles completos de una factura
+ * con diseño moderno y comparación lado a lado
  */
 function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: FacturaDetailModalProps) {
   if (!workflow || !workflow.factura) {
@@ -49,299 +64,555 @@ function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: Fact
 
   const formatDate = (date: string | null | undefined) => {
     if (!date) return '-';
-    return new Date(date).toLocaleDateString('es-CO');
+    return new Date(date).toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const formatDateShort = (date: string | null | undefined) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Calcular diferencias porcentuales
+  const calcularDiferencia = (actual: number | undefined, anterior: number | undefined) => {
+    if (!actual || !anterior || anterior === 0) return null;
+    return ((actual - anterior) / anterior) * 100;
+  };
+
+  // Calcular días hasta vencimiento
+  const calcularDiasVencimiento = (fechaVencimiento: string | null | undefined) => {
+    if (!fechaVencimiento) return null;
+    const hoy = new Date();
+    const vencimiento = new Date(fechaVencimiento);
+    const diff = Math.ceil((vencimiento.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
+
+  const diasVencimiento = calcularDiasVencimiento(factura.fecha_vencimiento);
+  const diferenciaTotal = factura_referencia
+    ? calcularDiferencia(factura.total_a_pagar, factura_referencia.total_a_pagar)
+    : null;
+
+  // Determinar color del estado de vencimiento
+  const getVencimientoColor = () => {
+    if (diasVencimiento === null) return 'default';
+    if (diasVencimiento < 0) return 'error';
+    if (diasVencimiento <= 5) return 'warning';
+    if (diasVencimiento <= 15) return 'info';
+    return 'success';
+  };
+
+  const getVencimientoTexto = () => {
+    if (diasVencimiento === null) return 'Sin fecha de vencimiento';
+    if (diasVencimiento < 0) return `Vencida hace ${Math.abs(diasVencimiento)} días`;
+    if (diasVencimiento === 0) return 'Vence hoy';
+    return `Vence en ${diasVencimiento} días`;
+  };
+
+  const getTrendIcon = () => {
+    if (diferenciaTotal === null) return null;
+    if (Math.abs(diferenciaTotal) < 1) return <TrendingFlat color="action" />;
+    if (diferenciaTotal > 0) return <TrendingUp color="error" />;
+    return <TrendingDown color="success" />;
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+        }
+      }}
+    >
+      {/* Header con gradiente */}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${zentriaColors.violeta.main} 0%, ${zentriaColors.violeta.dark} 100%)`,
+          color: 'white',
+          p: 3,
+          position: 'relative',
+        }}
+      >
+        <IconButton
+          onClick={onClose}
+          sx={{
+            position: 'absolute',
+            right: 16,
+            top: 16,
+            color: 'white',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            },
+          }}
+        >
+          <Close />
+        </IconButton>
+
+        <Stack direction="row" spacing={2} alignItems="center" mb={1}>
+          <Receipt sx={{ fontSize: 40 }} />
           <Box>
-            <Typography variant="h5" fontWeight={700}>
-              Factura {factura.numero_factura}
+            <Typography variant="h4" fontWeight={700}>
+              {factura.numero_factura}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
               CUFE: {factura.cufe}
             </Typography>
           </Box>
-          <Button onClick={onClose} color="inherit">
-            <Close />
-          </Button>
-        </Box>
-      </DialogTitle>
+        </Stack>
 
-      <DialogContent dividers>
-        {/* Análisis de Similitud */}
+        {/* Indicador de similitud en el header */}
         {porcentaje_similitud !== null && porcentaje_similitud !== undefined && (
-          <Box mb={3}>
-            <Alert
-              severity={es_identica_mes_anterior ? 'success' : porcentaje_similitud >= 95 ? 'info' : 'warning'}
-              icon={es_identica_mes_anterior ? <CheckCircle /> : <Warning />}
-            >
-              <Typography variant="subtitle2" fontWeight={600}>
+          <Box mt={2}>
+            <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+              {es_identica_mes_anterior ? <CheckCircle /> : <Warning />}
+              <Typography variant="subtitle2">
                 {es_identica_mes_anterior
-                  ? '✅ Factura idéntica al mes anterior'
-                  : `Similitud con factura anterior: ${porcentaje_similitud.toFixed(1)}%`}
+                  ? 'Factura idéntica al mes anterior'
+                  : `Similitud: ${porcentaje_similitud.toFixed(1)}%`}
               </Typography>
-              {diferencias_detectadas && diferencias_detectadas.length > 0 && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Se detectaron {diferencias_detectadas.length} diferencia(s)
-                </Typography>
-              )}
-            </Alert>
+            </Stack>
+            <LinearProgress
+              variant="determinate"
+              value={porcentaje_similitud}
+              sx={{
+                height: 8,
+                borderRadius: 1,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: es_identica_mes_anterior ? '#4caf50' : porcentaje_similitud >= 95 ? '#2196f3' : '#ff9800',
+                  borderRadius: 1,
+                },
+              }}
+            />
           </Box>
         )}
+      </Box>
 
-        {/* Información del Proveedor */}
-        <Box mb={3}>
-          <Typography variant="h6" fontWeight={600} gutterBottom>
-            Información del Proveedor
+      <DialogContent sx={{ p: 0 }}>
+        {/* Sección de Fechas y Estado - NUEVO */}
+        <Box sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+          <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Schedule color="primary" />
+            Fechas Importantes
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="body2" color="text.secondary">
-                Proveedor
-              </Typography>
-              <Typography variant="body1" fontWeight={500}>
-                {factura.proveedor?.razon_social || factura.proveedor_nombre || '-'}
-              </Typography>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card elevation={0} sx={{ borderLeft: `4px solid ${zentriaColors.violeta.main}` }}>
+                <CardContent>
+                  <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                    <CalendarToday sx={{ fontSize: 20, color: zentriaColors.violeta.main }} />
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      FECHA DE EMISIÓN
+                    </Typography>
+                  </Stack>
+                  <Typography variant="h6" fontWeight={700}>
+                    {formatDateShort(factura.fecha_emision)}
+                  </Typography>
+                </CardContent>
+              </Card>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Typography variant="body2" color="text.secondary">
-                NIT
-              </Typography>
-              <Typography variant="body1" fontWeight={500}>
-                {factura.proveedor?.nit || factura.nit || '-'}
-              </Typography>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card elevation={0} sx={{ borderLeft: `4px solid ${getVencimientoColor() === 'error' ? '#f44336' : getVencimientoColor() === 'warning' ? '#ff9800' : '#4caf50'}` }}>
+                <CardContent>
+                  <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                    <Schedule sx={{ fontSize: 20, color: getVencimientoColor() === 'error' ? '#f44336' : getVencimientoColor() === 'warning' ? '#ff9800' : '#4caf50' }} />
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      FECHA DE VENCIMIENTO
+                    </Typography>
+                  </Stack>
+                  <Typography variant="h6" fontWeight={700}>
+                    {formatDateShort(factura.fecha_vencimiento)}
+                  </Typography>
+                  <Chip
+                    label={getVencimientoTexto()}
+                    color={getVencimientoColor()}
+                    size="small"
+                    sx={{ mt: 1, fontWeight: 600 }}
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card elevation={0} sx={{ borderLeft: `4px solid ${zentriaColors.verde.main}` }}>
+                <CardContent>
+                  <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                    <Description sx={{ fontSize: 20, color: zentriaColors.verde.main }} />
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      ESTADO
+                    </Typography>
+                  </Stack>
+                  <Typography variant="h6" fontWeight={700} sx={{ textTransform: 'capitalize' }}>
+                    {factura.estado?.replace('_', ' ')}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card elevation={0} sx={{ borderLeft: `4px solid ${zentriaColors.naranja.main}` }}>
+                <CardContent>
+                  <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                    <AttachMoney sx={{ fontSize: 20, color: zentriaColors.naranja.main }} />
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      TOTAL A PAGAR
+                    </Typography>
+                  </Stack>
+                  <Typography variant="h6" fontWeight={700} color="primary">
+                    {formatCurrency(factura.total_a_pagar)}
+                  </Typography>
+                  {diferenciaTotal !== null && (
+                    <Stack direction="row" spacing={0.5} alignItems="center" mt={1}>
+                      {getTrendIcon()}
+                      <Typography variant="caption" fontWeight={600} color={diferenciaTotal > 0 ? 'error' : 'success'}>
+                        {diferenciaTotal > 0 ? '+' : ''}{diferenciaTotal.toFixed(1)}% vs anterior
+                      </Typography>
+                    </Stack>
+                  )}
+                </CardContent>
+              </Card>
             </Grid>
           </Grid>
         </Box>
 
-        <Divider sx={{ my: 3 }} />
+        <Divider />
 
-        {/* Comparación Lado a Lado */}
-        {factura_referencia ? (
-          <Box>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Comparación con Factura Anterior
-            </Typography>
+        {/* Información del Proveedor */}
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Store color="primary" />
+            Información del Proveedor
+          </Typography>
+          <Paper elevation={0} sx={{ p: 2, backgroundColor: '#f8f9fa', borderRadius: 2 }}>
             <Grid container spacing={3}>
-              {/* Factura Actual */}
-              <Grid item xs={12} md={6}>
-                <Box
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    border: `2px solid ${zentriaColors.violeta.main}`,
-                    backgroundColor: `${zentriaColors.violeta.main}08`,
-                  }}
-                >
-                  <Typography variant="subtitle1" fontWeight={600} color="primary" gutterBottom>
-                    📄 Factura Actual
-                  </Typography>
-                  <Table size="small">
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Número</strong>
-                        </TableCell>
-                        <TableCell>{factura.numero_factura}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Fecha</strong>
-                        </TableCell>
-                        <TableCell>{formatDate(factura.fecha_emision)}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Subtotal</strong>
-                        </TableCell>
-                        <TableCell>{formatCurrency(factura.subtotal)}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>IVA</strong>
-                        </TableCell>
-                        <TableCell>{formatCurrency(factura.iva)}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Total</strong>
-                        </TableCell>
-                        <TableCell>
-                          <strong>{formatCurrency(factura.total)}</strong>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Total a Pagar</strong>
-                        </TableCell>
-                        <TableCell>
-                          <strong>{formatCurrency(factura.total_a_pagar)}</strong>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </Box>
+              <Grid item xs={12} md={8}>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                  RAZÓN SOCIAL
+                </Typography>
+                <Typography variant="h6" fontWeight={600}>
+                  {factura.proveedor?.razon_social || factura.proveedor_nombre || '-'}
+                </Typography>
               </Grid>
-
-              {/* Factura Referencia */}
-              <Grid item xs={12} md={6}>
-                <Box
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    border: `2px solid ${zentriaColors.verde.main}`,
-                    backgroundColor: `${zentriaColors.verde.main}08`,
-                  }}
-                >
-                  <Typography variant="subtitle1" fontWeight={600} sx={{ color: zentriaColors.verde.dark }} gutterBottom>
-                    📋 Factura Anterior
-                  </Typography>
-                  <Table size="small">
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Número</strong>
-                        </TableCell>
-                        <TableCell>{factura_referencia.numero_factura}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Fecha</strong>
-                        </TableCell>
-                        <TableCell>{formatDate(factura_referencia.fecha_emision)}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Subtotal</strong>
-                        </TableCell>
-                        <TableCell>{formatCurrency(factura_referencia.subtotal)}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>IVA</strong>
-                        </TableCell>
-                        <TableCell>{formatCurrency(factura_referencia.iva)}</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Total</strong>
-                        </TableCell>
-                        <TableCell>
-                          <strong>{formatCurrency(factura_referencia.total)}</strong>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>
-                          <strong>Total a Pagar</strong>
-                        </TableCell>
-                        <TableCell>
-                          <strong>{formatCurrency(factura_referencia.total_a_pagar)}</strong>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </Box>
+              <Grid item xs={12} md={4}>
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                  NIT
+                </Typography>
+                <Typography variant="h6" fontWeight={600}>
+                  {factura.proveedor?.nit || factura.nit || '-'}
+                </Typography>
               </Grid>
             </Grid>
+          </Paper>
+        </Box>
 
-            {/* Diferencias Detectadas */}
-            {diferencias_detectadas && diferencias_detectadas.length > 0 && (
-              <Box mt={3}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Diferencias Detectadas
-                </Typography>
-                <Box display="flex" flexWrap="wrap" gap={1}>
-                  {diferencias_detectadas.map((diff, index) => (
-                    <Chip
-                      key={index}
-                      label={`${diff.campo}: ${diff.valor_anterior} → ${diff.valor_actual}`}
-                      color="warning"
-                      size="small"
-                    />
-                  ))}
+        <Divider />
+
+        {/* Comparación Lado a Lado o Detalles Simples */}
+        <Box sx={{ p: 3 }}>
+          {factura_referencia ? (
+            <>
+              <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AccountBalance color="primary" />
+                Comparación Financiera
+              </Typography>
+              <Grid container spacing={3}>
+                {/* Factura Actual */}
+                <Grid item xs={12} md={6}>
+                  <Paper
+                    elevation={3}
+                    sx={{
+                      p: 3,
+                      borderRadius: 2,
+                      border: `3px solid ${zentriaColors.violeta.main}`,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 6,
+                        background: `linear-gradient(90deg, ${zentriaColors.violeta.main}, ${zentriaColors.violeta.dark})`,
+                      },
+                    }}
+                  >
+                    <Box sx={{ pt: 1 }}>
+                      <Chip
+                        label="FACTURA ACTUAL"
+                        color="primary"
+                        size="small"
+                        sx={{ fontWeight: 700, mb: 2 }}
+                      />
+                      <Stack spacing={2}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Número de Factura
+                          </Typography>
+                          <Typography variant="body1" fontWeight={600}>
+                            {factura.numero_factura}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Fecha de Emisión
+                          </Typography>
+                          <Typography variant="body1" fontWeight={600}>
+                            {formatDate(factura.fecha_emision)}
+                          </Typography>
+                        </Box>
+                        {factura.fecha_vencimiento && (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                              Fecha de Vencimiento
+                            </Typography>
+                            <Typography variant="body1" fontWeight={600}>
+                              {formatDate(factura.fecha_vencimiento)}
+                            </Typography>
+                          </Box>
+                        )}
+                        <Divider />
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Subtotal
+                          </Typography>
+                          <Typography variant="h6" fontWeight={700}>
+                            {formatCurrency(factura.subtotal)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            IVA
+                          </Typography>
+                          <Typography variant="h6" fontWeight={700}>
+                            {formatCurrency(factura.iva)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Total
+                          </Typography>
+                          <Typography variant="h6" fontWeight={700}>
+                            {formatCurrency(factura.total)}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 2,
+                            backgroundColor: `${zentriaColors.violeta.main}15`,
+                            borderRadius: 2,
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            TOTAL A PAGAR
+                          </Typography>
+                          <Typography variant="h5" fontWeight={800} color="primary">
+                            {formatCurrency(factura.total_a_pagar)}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  </Paper>
+                </Grid>
+
+                {/* Factura Referencia */}
+                <Grid item xs={12} md={6}>
+                  <Paper
+                    elevation={3}
+                    sx={{
+                      p: 3,
+                      borderRadius: 2,
+                      border: `3px solid ${zentriaColors.verde.main}`,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 6,
+                        background: `linear-gradient(90deg, ${zentriaColors.verde.main}, ${zentriaColors.verde.dark})`,
+                      },
+                    }}
+                  >
+                    <Box sx={{ pt: 1 }}>
+                      <Chip
+                        label="FACTURA ANTERIOR"
+                        sx={{ fontWeight: 700, mb: 2, backgroundColor: zentriaColors.verde.main, color: 'white' }}
+                        size="small"
+                      />
+                      <Stack spacing={2}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Número de Factura
+                          </Typography>
+                          <Typography variant="body1" fontWeight={600}>
+                            {factura_referencia.numero_factura}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Fecha de Emisión
+                          </Typography>
+                          <Typography variant="body1" fontWeight={600}>
+                            {formatDate(factura_referencia.fecha_emision)}
+                          </Typography>
+                        </Box>
+                        {factura_referencia.fecha_vencimiento && (
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                              Fecha de Vencimiento
+                            </Typography>
+                            <Typography variant="body1" fontWeight={600}>
+                              {formatDate(factura_referencia.fecha_vencimiento)}
+                            </Typography>
+                          </Box>
+                        )}
+                        <Divider />
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Subtotal
+                          </Typography>
+                          <Typography variant="h6" fontWeight={700}>
+                            {formatCurrency(factura_referencia.subtotal)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            IVA
+                          </Typography>
+                          <Typography variant="h6" fontWeight={700}>
+                            {formatCurrency(factura_referencia.iva)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            Total
+                          </Typography>
+                          <Typography variant="h6" fontWeight={700}>
+                            {formatCurrency(factura_referencia.total)}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 2,
+                            backgroundColor: `${zentriaColors.verde.main}15`,
+                            borderRadius: 2,
+                          }}
+                        >
+                          <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                            TOTAL A PAGAR
+                          </Typography>
+                          <Typography variant="h5" fontWeight={800} sx={{ color: zentriaColors.verde.dark }}>
+                            {formatCurrency(factura_referencia.total_a_pagar)}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* Diferencias Detectadas */}
+              {diferencias_detectadas && diferencias_detectadas.length > 0 && (
+                <Box mt={3}>
+                  <Alert severity="warning" icon={<Warning />} sx={{ borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                      Se detectaron {diferencias_detectadas.length} diferencia(s)
+                    </Typography>
+                    <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
+                      {diferencias_detectadas.map((diff: any, index: number) => (
+                        <Chip
+                          key={index}
+                          label={`${diff.campo}: ${diff.valor_anterior} → ${diff.valor_actual}`}
+                          size="small"
+                          sx={{ fontWeight: 600 }}
+                        />
+                      ))}
+                    </Box>
+                  </Alert>
                 </Box>
-              </Box>
-            )}
-          </Box>
-        ) : (
-          /* Detalles Sin Comparación */
-          <Box>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Detalles de la Factura
-            </Typography>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <strong>Número de Factura</strong>
-                  </TableCell>
-                  <TableCell>{factura.numero_factura}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Fecha de Emisión</strong>
-                  </TableCell>
-                  <TableCell>{formatDate(factura.fecha_emision)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Subtotal</strong>
-                  </TableCell>
-                  <TableCell>{formatCurrency(factura.subtotal)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>IVA</strong>
-                  </TableCell>
-                  <TableCell>{formatCurrency(factura.iva)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Total</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>{formatCurrency(factura.total)}</strong>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Total a Pagar</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>{formatCurrency(factura.total_a_pagar)}</strong>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <strong>Estado</strong>
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={factura.estado} size="small" />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </Box>
-        )}
+              )}
+            </>
+          ) : (
+            /* Detalles Sin Comparación */
+            <>
+              <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AccountBalance color="primary" />
+                Detalles Financieros
+              </Typography>
+              <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        Subtotal
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700}>
+                        {formatCurrency(factura.subtotal)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        IVA
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700}>
+                        {formatCurrency(factura.iva)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        Total
+                      </Typography>
+                      <Typography variant="h6" fontWeight={700}>
+                        {formatCurrency(factura.total)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        backgroundColor: `${zentriaColors.violeta.main}15`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        TOTAL A PAGAR
+                      </Typography>
+                      <Typography variant="h5" fontWeight={800} color="primary">
+                        {formatCurrency(factura.total_a_pagar)}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </>
+          )}
+        </Box>
 
-        {/* Observaciones */}
-        {factura.observaciones && (
-          <Box mt={3}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Observaciones
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {factura.observaciones}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Contexto Histórico - Nuevo */}
+        {/* Contexto Histórico */}
         {contextoHistorico && (
-          <Box mt={3}>
+          <Box sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
             <ContextoHistoricoCard
               contexto={contextoHistorico}
               montoActual={factura.total || 0}
@@ -350,8 +621,8 @@ function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: Fact
         )}
       </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose} variant="outlined">
+      <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+        <Button onClick={onClose} variant="outlined" size="large" sx={{ minWidth: 120 }}>
           Cerrar
         </Button>
       </DialogActions>

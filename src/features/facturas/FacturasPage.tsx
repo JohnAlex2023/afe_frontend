@@ -43,8 +43,9 @@ import {
   TableChart,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { fetchFacturasPendientes, aprobarFactura, rechazarFactura } from './facturasSlice';
+import { fetchFacturasPendientes, fetchFacturaDetalle, aprobarFactura, rechazarFactura } from './facturasSlice';
 import { zentriaColors } from '../../theme/colors';
+import { actionButtonStyles, tooltipProps } from '../../theme/buttonStyles';
 import FacturaDetailModal from '../../components/Facturas/FacturaDetailModal';
 import ApprovalDialog from '../../components/Facturas/ApprovalDialog';
 import RejectionDialog from '../../components/Facturas/RejectionDialog';
@@ -228,9 +229,38 @@ function FacturasPage() {
     }).format(amount);
   };
 
-  const handleViewDetails = (workflow: Workflow) => {
-    setSelectedWorkflow(workflow);
-    setDetailModalOpen(true);
+  const handleViewDetails = async (workflow: Workflow) => {
+    try {
+      // @ts-ignore - FacturaPendiente tiene factura_id
+      const facturaId = workflow.factura_id || workflow.factura?.id;
+
+      if (!facturaId) {
+        showNotification('No se pudo obtener el ID de la factura', 'error');
+        return;
+      }
+
+      // Cargar detalles completos de la factura
+      const detalles = await dispatch(fetchFacturaDetalle(facturaId)).unwrap();
+
+      console.log('[handleViewDetails] Detalles recibidos:', detalles);
+
+      // Combinar factura y workflow en un solo objeto para el modal
+      // Mapear factura_mes_anterior a factura_referencia para compatibilidad con el modal
+      const workflowCompleto = {
+        ...(detalles.workflow || {}),
+        factura: detalles.factura,
+        factura_referencia: detalles.workflow?.factura_mes_anterior,
+        contexto_historico: detalles.contexto_historico
+      };
+
+      console.log('[handleViewDetails] Workflow completo:', workflowCompleto);
+
+      setSelectedWorkflow(workflowCompleto);
+      setDetailModalOpen(true);
+    } catch (error: any) {
+      console.error('Error al cargar detalles de factura:', error);
+      showNotification('Error al cargar detalles de la factura', 'error');
+    }
   };
 
   const handleOpenApproval = (workflow: Workflow) => {
@@ -248,11 +278,13 @@ function FacturasPage() {
 
     setActionLoading(true);
     try {
+      // @ts-ignore - FacturaPendiente tiene workflow_id
+      const workflowId = selectedWorkflow.workflow_id || selectedWorkflow.id;
       await dispatch(
         aprobarFactura({
-          workflowId: selectedWorkflow.id,
+          workflowId,
           data: {
-            aprobado_por: user.id,
+            aprobado_por: String(user.id),
             observaciones: observaciones || undefined,
           },
         })
@@ -287,13 +319,15 @@ function FacturasPage() {
 
     setActionLoading(true);
     try {
+      // @ts-ignore - FacturaPendiente tiene workflow_id
+      const workflowId = selectedWorkflow.workflow_id || selectedWorkflow.id;
       await dispatch(
         rechazarFactura({
-          workflowId: selectedWorkflow.id,
+          workflowId,
           data: {
-            rechazado_por: user.id,
-            motivo_rechazo: motivo,
-            observaciones: observaciones || undefined,
+            rechazado_por: String(user.id),
+            motivo: motivo,
+            detalle: observaciones || undefined,
           },
         })
       ).unwrap();
@@ -578,34 +612,67 @@ function FacturasPage() {
                       )}
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Ver detalles">
-                        <IconButton size="small" color="primary" onClick={() => handleViewDetails(factura)}>
+                      <Tooltip title={`Ver detalles de la factura ${factura.numero_factura}`} {...tooltipProps}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleViewDetails(factura)}
+                          sx={actionButtonStyles.view}
+                        >
                           <Visibility />
                         </IconButton>
                       </Tooltip>
                     </TableCell>
                     <TableCell align="center">
                       <Box display="flex" gap={1} justifyContent="center">
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="success"
-                          startIcon={<CheckCircle />}
-                          onClick={() => handleOpenApproval(factura)}
-                          disabled={actionLoading}
-                        >
-                          Aprobar
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          startIcon={<Cancel />}
-                          onClick={() => handleOpenRejection(factura)}
-                          disabled={actionLoading}
-                        >
-                          Rechazar
-                        </Button>
+                        <Tooltip title={`Aprobar factura ${factura.numero_factura}`} {...tooltipProps}>
+                          <span>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="success"
+                              startIcon={<CheckCircle />}
+                              onClick={() => handleOpenApproval(factura)}
+                              disabled={actionLoading}
+                              sx={{
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                '&:hover': {
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: `0 4px 12px ${zentriaColors.verde.main}60`,
+                                },
+                                '&:active': {
+                                  transform: 'translateY(0)',
+                                },
+                              }}
+                            >
+                              Aprobar
+                            </Button>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title={`Rechazar factura ${factura.numero_factura}`} {...tooltipProps}>
+                          <span>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              startIcon={<Cancel />}
+                              onClick={() => handleOpenRejection(factura)}
+                              disabled={actionLoading}
+                              sx={{
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                '&:hover': {
+                                  transform: 'translateY(-2px)',
+                                  boxShadow: '0 4px 12px #f4433660',
+                                  bgcolor: '#f4433608',
+                                },
+                                '&:active': {
+                                  transform: 'translateY(0)',
+                                },
+                              }}
+                            >
+                              Rechazar
+                            </Button>
+                          </span>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -662,13 +729,19 @@ function FacturasPage() {
       </Menu>
 
       {/* Modales y Diálogos */}
-      <FacturaDetailModal open={detailModalOpen} onClose={() => setDetailModalOpen(false)} workflow={selectedWorkflow} />
+      <FacturaDetailModal
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+        workflow={selectedWorkflow}
+        contextoHistorico={selectedWorkflow?.contexto_historico}
+      />
 
       <ApprovalDialog
         open={approvalDialogOpen}
         onClose={() => setApprovalDialogOpen(false)}
         onConfirm={handleApprove}
-        facturaNumero={selectedWorkflow?.factura?.numero_factura || ''}
+        facturaNumero={selectedWorkflow?.factura?.numero_factura || selectedWorkflow?.numero_factura || ''}
+        workflow={selectedWorkflow}
         loading={actionLoading}
       />
 
@@ -676,7 +749,8 @@ function FacturasPage() {
         open={rejectionDialogOpen}
         onClose={() => setRejectionDialogOpen(false)}
         onConfirm={handleReject}
-        facturaNumero={selectedWorkflow?.factura?.numero_factura || ''}
+        facturaNumero={selectedWorkflow?.factura?.numero_factura || selectedWorkflow?.numero_factura || ''}
+        workflow={selectedWorkflow}
         loading={actionLoading}
       />
     </Box>

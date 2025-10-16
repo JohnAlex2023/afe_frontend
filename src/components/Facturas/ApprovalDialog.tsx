@@ -10,15 +10,22 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+  Divider,
 } from '@mui/material';
 import { CheckCircle } from '@mui/icons-material';
 import { zentriaColors } from '../../theme/colors';
+import type { Workflow } from '../../types/factura.types';
 
 interface ApprovalDialogProps {
   open: boolean;
   onClose: () => void;
   onConfirm: (observaciones: string) => Promise<void>;
   facturaNumero: string;
+  workflow?: Workflow | null;
   loading?: boolean;
 }
 
@@ -26,9 +33,18 @@ interface ApprovalDialogProps {
  * Diálogo de confirmación para aprobar facturas
  * Permite agregar observaciones opcionales
  */
-function ApprovalDialog({ open, onClose, onConfirm, facturaNumero, loading = false }: ApprovalDialogProps) {
+function ApprovalDialog({ open, onClose, onConfirm, facturaNumero, workflow, loading = false }: ApprovalDialogProps) {
   const [observaciones, setObservaciones] = useState('');
   const [error, setError] = useState('');
+
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return '-';
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
 
   const handleConfirm = async () => {
     setError('');
@@ -70,6 +86,42 @@ function ApprovalDialog({ open, onClose, onConfirm, facturaNumero, loading = fal
             Al aprobar esta factura, el workflow avanzará automáticamente según las reglas configuradas.
           </Typography>
         </Box>
+
+        {/* Información de la Factura */}
+        {workflow?.factura && (
+          <Box mb={3}>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+              Información de la Factura
+            </Typography>
+            <Table size="small">
+              <TableBody>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Proveedor:</TableCell>
+                  <TableCell>{workflow.factura.proveedor?.razon_social || '-'}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>NIT:</TableCell>
+                  <TableCell>{workflow.factura.proveedor?.nit || '-'}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Subtotal:</TableCell>
+                  <TableCell>{formatCurrency(workflow.factura.subtotal)}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>IVA:</TableCell>
+                  <TableCell>{formatCurrency(workflow.factura.iva)}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Total a Pagar:</TableCell>
+                  <TableCell>
+                    <strong>{formatCurrency(workflow.factura.total_a_pagar)}</strong>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+            <Divider sx={{ my: 2 }} />
+          </Box>
+        )}
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

@@ -160,16 +160,175 @@ function MainLayout() {
             </Avatar>
           </IconButton>
 
-          <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-            <MenuItem disabled>
-              <AccountCircle sx={{ mr: 1 }} />
-              {user?.nombre || 'Usuario'}
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleLogout}>
-              <LogoutIcon sx={{ mr: 1 }} />
-              Cerrar Sesión
-            </MenuItem>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            PaperProps={{
+              elevation: 0,
+              sx: {
+                mt: 1.5,
+                minWidth: 280,
+                borderRadius: '16px',
+                overflow: 'visible',
+                background: 'white',
+                boxShadow: '0 12px 48px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08)',
+                border: 'none',
+                '&:before': {
+                  content: '""',
+                  display: 'block',
+                  position: 'absolute',
+                  top: 0,
+                  right: 18,
+                  width: 14,
+                  height: 14,
+                  bgcolor: 'white',
+                  transform: 'translateY(-50%) rotate(45deg)',
+                  zIndex: 0,
+                  boxShadow: '-4px -4px 8px rgba(0, 0, 0, 0.04)',
+                },
+              },
+            }}
+          >
+            {/* User Info Header - Diseño moderno sin fondo de color */}
+            <Box sx={{ px: 3, py: 2.5, pb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ position: 'relative' }}>
+                  <Avatar
+                    sx={{
+                      background: `linear-gradient(135deg, ${zentriaColors.violeta.main} 0%, ${zentriaColors.violeta.dark} 100%)`,
+                      color: 'white',
+                      width: 56,
+                      height: 56,
+                      fontWeight: 700,
+                      fontSize: '1.5rem',
+                      boxShadow: `0 4px 16px ${zentriaColors.violeta.main}40`,
+                    }}
+                  >
+                    {user?.nombre?.[0] || 'U'}
+                  </Avatar>
+                  {/* Status indicator - online */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 2,
+                      right: 2,
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      bgcolor: '#22c55e',
+                      border: '3px solid white',
+                      boxShadow: '0 2px 8px rgba(34, 197, 94, 0.4)',
+                    }}
+                  />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 700,
+                      color: '#1a202c',
+                      lineHeight: 1.3,
+                      mb: 0.5,
+                      fontSize: '1rem',
+                    }}
+                  >
+                    {user?.nombre || 'Usuario'}
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      bgcolor: `${zentriaColors.violeta.main}15`,
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: zentriaColors.violeta.main,
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        fontSize: '0.7rem',
+                        letterSpacing: '0.5px',
+                      }}
+                    >
+                      {user?.rol || 'Rol'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+
+            <Divider sx={{ my: 0.5 }} />
+
+            {/* User email */}
+            <Box sx={{ px: 3, py: 2, bgcolor: '#f8fafc' }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#64748b',
+                  fontWeight: 500,
+                  display: 'block',
+                  fontSize: '0.75rem',
+                }}
+              >
+                {user?.email || 'usuario@zentria.com'}
+              </Typography>
+            </Box>
+
+            <Divider sx={{ my: 0.5 }} />
+
+            {/* Logout Button - Diseño moderno */}
+            <Box sx={{ p: 1.5 }}>
+              <MenuItem
+                onClick={handleLogout}
+                sx={{
+                  borderRadius: '12px',
+                  py: 1.75,
+                  px: 2.5,
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  border: '2px solid transparent',
+                  '&:hover': {
+                    bgcolor: '#fef2f2',
+                    border: '2px solid #fee2e2',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)',
+                    '& .logout-icon': {
+                      transform: 'translateX(4px)',
+                    },
+                    '& .logout-text': {
+                      color: '#dc2626',
+                    },
+                  },
+                }}
+              >
+                <LogoutIcon
+                  className="logout-icon"
+                  sx={{
+                    mr: 2,
+                    color: '#ef4444',
+                    fontSize: 24,
+                    transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                />
+                <Typography
+                  className="logout-text"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#ef4444',
+                    fontSize: '0.95rem',
+                    transition: 'color 0.25s ease',
+                  }}
+                >
+                  Cerrar Sesión
+                </Typography>
+              </MenuItem>
+            </Box>
           </Menu>
         </Toolbar>
       </AppBar>
