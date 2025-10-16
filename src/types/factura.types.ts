@@ -110,6 +110,8 @@ export interface FacturaPendiente extends Workflow {
   fecha_emision?: string;
   fecha_asignacion?: string;
   dias_pendiente: number;
+  nombre_responsable?: string; // Nombre del responsable asignado
+  contexto_historico?: ContextoHistorico; // Contexto histórico de la factura
 }
 
 export interface DashboardMetrics {

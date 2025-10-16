@@ -273,16 +273,6 @@ function DashboardPage() {
           </Typography>
         </Box>
         <Box display="flex" gap={2} alignItems="center">
-          {/* Quick stats indicator */}
-          <Chip
-            label={`${stats.pendientes} pendientes`}
-            size="small"
-            color={stats.pendientes > 10 ? "warning" : "default"}
-            sx={{
-              fontWeight: 600,
-              display: { xs: 'none', sm: 'flex' },
-            }}
-          />
           <Button
             variant="outlined"
             startIcon={loading ? <CircularProgress size={18} /> : <Refresh />}
@@ -343,7 +333,7 @@ function DashboardPage() {
       />
 
       {/* Charts Section - NEW! */}
-      <ChartsSection />
+      <ChartsSection stats={stats} />
 
       {/* Filters and Search */}
       <FilterBar

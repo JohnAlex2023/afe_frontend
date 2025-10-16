@@ -131,6 +131,34 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
               >
                 Estado
               </TableCell>
+              {isAdmin && (
+                <>
+                  <TableCell
+                    sx={{
+                      color: 'text.primary',
+                      fontWeight: 700,
+                      fontSize: '0.8125rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      py: 2,
+                    }}
+                  >
+                    Responsable
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: 'text.primary',
+                      fontWeight: 700,
+                      fontSize: '0.8125rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      py: 2,
+                    }}
+                  >
+                    Acción Por
+                  </TableCell>
+                </>
+              )}
               <TableCell
                 align="center"
                 sx={{
@@ -170,6 +198,31 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
                       size="small"
                     />
                   </TableCell>
+                  {isAdmin && (
+                    <>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {factura.nombre_responsable || '-'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {factura.accion_por ? (
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                              {factura.accion_por}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {factura.fecha_accion ? formatDate(factura.fecha_accion) : ''}
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.disabled">
+                            -
+                          </Typography>
+                        )}
+                      </TableCell>
+                    </>
+                  )}
                   <TableCell align="center">
                     <Tooltip title={`Ver detalles de la factura ${factura.numero_factura}`} {...tooltipProps}>
                       <IconButton
@@ -210,7 +263,7 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={isAdmin ? 9 : 7} align="center">
                   <Box
                     sx={{
                       py: 8,

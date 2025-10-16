@@ -5,7 +5,6 @@
 import { Grid } from '@mui/material';
 import {
   AttachFile,
-  PendingActions,
   RemoveRedEye,
   CheckCircle,
   SmartToy,
@@ -43,16 +42,6 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats, previousStats, on
       border: `1px solid ${zentriaColors.violeta.main}30`,
       icon: <AttachFile />,
       filter: 'todos',
-    },
-    {
-      key: 'pendientes',
-      label: 'PENDIENTES',
-      value: stats.pendientes,
-      color: zentriaColors.amarillo.dark,
-      bgGradient: `linear-gradient(135deg, ${zentriaColors.amarillo.dark}10, ${zentriaColors.amarillo.dark}05)`,
-      border: `1px solid ${zentriaColors.amarillo.dark}30`,
-      icon: <PendingActions />,
-      filter: 'pendiente',
     },
     {
       key: 'en_revision',
@@ -99,7 +88,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats, previousStats, on
   return (
     <Grid container spacing={3} mb={4}>
       {statsConfig.map((stat, index) => (
-        <Grid item xs={12} sm={6} md={2.4} key={index}>
+        <Grid item xs={12} sm={6} md={2.4} lg={2.4} key={index}>
           <EnhancedStatCard
             label={stat.label}
             value={stat.value}

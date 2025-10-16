@@ -28,8 +28,36 @@ const initialState: FacturasState = {
 export const fetchFacturasPendientes = createAsyncThunk(
   'facturas/fetchPendientes',
   async (responsableId: number) => {
-    const response = await apiClient.get(`/workflow/mis-facturas-pendientes?responsable_id=${responsableId}&limite=100`);
-    return response.data.facturas_pendientes;
+    // Usar el endpoint de facturas para obtener todas las facturas en revisión
+    const response = await apiClient.get(`/facturas/`, {
+      params: {
+        page: 1,
+        per_page: 500,
+        solo_asignadas: true, // Solo las asignadas al responsable actual
+      }
+    });
+
+    // Filtrar solo las facturas que están en revisión
+    const facturas = response.data.data || [];
+    const facturasEnRevision = facturas.filter((f: any) =>
+      f.estado === 'en_revision'
+    );
+
+    // Transformar al formato que espera el componente
+    return facturasEnRevision.map((f: any) => ({
+      workflow_id: f.id,
+      factura_id: f.id,
+      numero_factura: f.numero_factura,
+      proveedor: f.nombre_emisor || 'Sin proveedor',
+      nit: f.nit_emisor,
+      monto: parseFloat(f.total_a_pagar || 0),
+      estado: f.estado,
+      porcentaje_similitud: null,
+      es_identica_mes_anterior: false,
+      fecha_asignacion: f.creado_en,
+      creado_en: f.creado_en,
+      nombre_responsable: f.nombre_responsable || null,
+    }));
   }
 );
 
@@ -49,21 +77,7 @@ export const fetchDashboard = createAsyncThunk(
   }
 );
 
-export const aprobarFactura = createAsyncThunk(
-  'facturas/aprobar',
-  async ({ workflowId, data }: { workflowId: number; data: { aprobado_por: string; observaciones?: string } }) => {
-    const response = await apiClient.post(`/workflow/aprobar/${workflowId}`, data);
-    return response.data;
-  }
-);
-
-export const rechazarFactura = createAsyncThunk(
-  'facturas/rechazar',
-  async ({ workflowId, data }: { workflowId: number; data: { rechazado_por: string; motivo: string; detalle?: string } }) => {
-    const response = await apiClient.post(`/workflow/rechazar/${workflowId}`, data);
-    return response.data;
-  }
-);
+// Thunks de aprobar/rechazar removidos - ahora se usa facturasService directamente
 
 const facturasSlice = createSlice({
   name: 'facturas',
@@ -117,14 +131,6 @@ const facturasSlice = createSlice({
       .addCase(fetchDashboard.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Error al cargar dashboard';
-      })
-      // Aprobar
-      .addCase(aprobarFactura.fulfilled, (state) => {
-        state.selectedFactura = null;
-      })
-      // Rechazar
-      .addCase(rechazarFactura.fulfilled, (state) => {
-        state.selectedFactura = null;
       });
   },
 });

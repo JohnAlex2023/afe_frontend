@@ -43,7 +43,8 @@ import {
   TableChart,
 } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { fetchFacturasPendientes, fetchFacturaDetalle, aprobarFactura, rechazarFactura } from './facturasSlice';
+import { fetchFacturasPendientes, fetchFacturaDetalle } from './facturasSlice';
+import { facturasService } from './services/facturas.service';
 import { zentriaColors } from '../../theme/colors';
 import { actionButtonStyles, tooltipProps } from '../../theme/buttonStyles';
 import FacturaDetailModal from '../../components/Facturas/FacturaDetailModal';
@@ -229,6 +230,7 @@ function FacturasPage() {
     }).format(amount);
   };
 
+
   const handleViewDetails = async (workflow: Workflow) => {
     try {
       // @ts-ignore - FacturaPendiente tiene factura_id
@@ -274,24 +276,18 @@ function FacturasPage() {
   };
 
   const handleApprove = async (observaciones: string) => {
-    if (!selectedWorkflow || !user?.id) return;
+    if (!selectedWorkflow || !user?.usuario) return;
 
     setActionLoading(true);
     try {
-      // @ts-ignore - FacturaPendiente tiene workflow_id
-      const workflowId = selectedWorkflow.workflow_id || selectedWorkflow.id;
-      await dispatch(
-        aprobarFactura({
-          workflowId,
-          data: {
-            aprobado_por: String(user.id),
-            observaciones: observaciones || undefined,
-          },
-        })
-      ).unwrap();
+      // @ts-ignore - FacturaPendiente tiene factura_id
+      const facturaId = selectedWorkflow.factura_id;
+
+      // Usar el mismo servicio que el Dashboard - endpoint /facturas/{id}/aprobar
+      await facturasService.approveFactura(facturaId, user.usuario, observaciones);
 
       showNotification(
-        `✅ Factura ${selectedWorkflow.factura?.numero_factura} aprobada exitosamente`,
+        `✅ Factura ${selectedWorkflow.factura?.numero_factura || selectedWorkflow.numero_factura} aprobada exitosamente`,
         'success'
       );
 
@@ -315,25 +311,18 @@ function FacturasPage() {
   };
 
   const handleReject = async (motivo: string, observaciones: string) => {
-    if (!selectedWorkflow || !user?.id) return;
+    if (!selectedWorkflow || !user?.usuario) return;
 
     setActionLoading(true);
     try {
-      // @ts-ignore - FacturaPendiente tiene workflow_id
-      const workflowId = selectedWorkflow.workflow_id || selectedWorkflow.id;
-      await dispatch(
-        rechazarFactura({
-          workflowId,
-          data: {
-            rechazado_por: String(user.id),
-            motivo: motivo,
-            detalle: observaciones || undefined,
-          },
-        })
-      ).unwrap();
+      // @ts-ignore - FacturaPendiente tiene factura_id
+      const facturaId = selectedWorkflow.factura_id;
+
+      // Usar el mismo servicio que el Dashboard - endpoint /facturas/{id}/rechazar
+      await facturasService.rejectFactura(facturaId, user.usuario, motivo, observaciones);
 
       showNotification(
-        `🚫 Factura ${selectedWorkflow.factura?.numero_factura} rechazada`,
+        `🚫 Factura ${selectedWorkflow.factura?.numero_factura || selectedWorkflow.numero_factura} rechazada`,
         'warning'
       );
 
@@ -383,7 +372,7 @@ function FacturasPage() {
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
-            Gestión de Facturas
+            Facturas por Revisar
           </Typography>
           <Box display="flex" alignItems="center" gap={2} mt={1} flexWrap="wrap">
             <Chip
@@ -539,37 +528,66 @@ function FacturasPage() {
         <TableContainer sx={{ width: '100%', overflowX: 'auto' }}>
           <Table sx={{ minWidth: { xs: 650, sm: 750, md: 900 } }}>
             <TableHead>
-              <TableRow>
+              <TableRow sx={{
+                bgcolor: '#f8f9fa',
+                '& .MuiTableCell-root': {
+                  borderBottom: `2px solid ${zentriaColors.violeta.main}`,
+                  py: 2
+                }
+              }}>
                 <TableCell>
-                  <strong>Factura</strong>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    Factura
+                  </Typography>
                 </TableCell>
                 <TableCell>
-                  <strong>Proveedor</strong>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    Proveedor
+                  </Typography>
                 </TableCell>
                 <TableCell>
-                  <strong>NIT</strong>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    NIT
+                  </Typography>
                 </TableCell>
                 <TableCell align="right">
-                  <strong>Monto</strong>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    Monto
+                  </Typography>
                 </TableCell>
                 <TableCell>
-                  <strong>Estado</strong>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    Estado
+                  </Typography>
                 </TableCell>
                 <TableCell align="center">
-                  <strong>Similitud</strong>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    Similitud
+                  </Typography>
+                </TableCell>
+                {user?.rol === 'admin' && (
+                  <TableCell>
+                    <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                      Responsable
+                    </Typography>
+                  </TableCell>
+                )}
+                <TableCell align="center">
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    Detalles
+                  </Typography>
                 </TableCell>
                 <TableCell align="center">
-                  <strong>Ver</strong>
-                </TableCell>
-                <TableCell align="center">
-                  <strong>Acciones</strong>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    Acciones
+                  </Typography>
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredFacturas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={user?.rol === 'admin' ? 9 : 8} align="center">
                     <Box py={6}>
                       <Typography variant="h6" color="text.secondary" gutterBottom>
                         No se encontraron facturas
@@ -577,40 +595,119 @@ function FacturasPage() {
                       <Typography variant="body2" color="text.secondary">
                         {searchText || estadoFilter !== 'todos' || similitudFilter !== 'todos'
                           ? 'Intenta ajustar los filtros de búsqueda'
-                          : 'No hay facturas pendientes en este momento'}
+                          : 'No hay facturas por revisar en este momento'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {!searchText && estadoFilter === 'todos' && similitudFilter === 'todos' && (
+                          '✅ ¡Excelente! Todas las facturas asignadas han sido procesadas.'
+                        )}
                       </Typography>
                     </Box>
                   </TableCell>
                 </TableRow>
               ) : (
                 paginatedFacturas.map((factura) => (
-                  <TableRow key={factura.workflow_id} hover>
-                    <TableCell>{factura.numero_factura}</TableCell>
-                    <TableCell>{factura.proveedor}</TableCell>
-                    <TableCell>{factura.nit}</TableCell>
-                    <TableCell align="right">{formatCurrency(factura.monto)}</TableCell>
+                  <TableRow
+                    key={factura.workflow_id}
+                    hover
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: `${zentriaColors.violeta.main}08`,
+                      },
+                      transition: 'background-color 0.2s ease',
+                    }}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600} color={zentriaColors.violeta.main}>
+                        {factura.numero_factura}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+                        {factura.proveedor}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {factura.nit}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={600} color={zentriaColors.verde.main}>
+                        {formatCurrency(factura.monto)}
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       <Chip
-                        label={factura.estado.replace('_', ' ')}
+                        label={factura.estado.replace('_', ' ').toUpperCase()}
                         color={getEstadoColor(factura.estado)}
                         size="small"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: '0.7rem',
+                          letterSpacing: '0.5px',
+                        }}
                       />
                     </TableCell>
                     <TableCell align="center">
                       {factura.porcentaje_similitud ? (
-                        <Box>
+                        <Box display="flex" alignItems="center" justifyContent="center" gap={0.5}>
+                          <Box
+                            sx={{
+                              width: 40,
+                              height: 6,
+                              borderRadius: 3,
+                              bgcolor: '#e0e0e0',
+                              position: 'relative',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 0,
+                                height: '100%',
+                                width: `${factura.porcentaje_similitud}%`,
+                                bgcolor: factura.porcentaje_similitud >= 95 ? zentriaColors.verde.main : zentriaColors.naranja.main,
+                                borderRadius: 3,
+                              }}
+                            />
+                          </Box>
                           <Typography
-                            variant="body2"
-                            fontWeight={600}
+                            variant="caption"
+                            fontWeight={700}
                             color={factura.porcentaje_similitud >= 95 ? zentriaColors.verde.main : zentriaColors.naranja.main}
                           >
                             {factura.porcentaje_similitud.toFixed(1)}%
                           </Typography>
                         </Box>
                       ) : (
-                        '-'
+                        <Typography variant="body2" color="text.disabled">-</Typography>
                       )}
                     </TableCell>
+                    {user?.rol === 'admin' && (
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Box
+                            sx={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              backgroundColor: factura.nombre_responsable ? zentriaColors.verde.main : zentriaColors.cinza,
+                            }}
+                          />
+                          <Typography
+                            variant="body2"
+                            fontWeight={500}
+                            color={factura.nombre_responsable ? 'text.primary' : 'text.disabled'}
+                          >
+                            {/* @ts-ignore */}
+                            {factura.nombre_responsable || 'Sin asignar'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                    )}
                     <TableCell align="center">
                       <Tooltip title={`Ver detalles de la factura ${factura.numero_factura}`} {...tooltipProps}>
                         <IconButton

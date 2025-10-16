@@ -44,44 +44,41 @@ export const FacturaActionsMenu: React.FC<FacturaActionsMenuProps> = ({
         }
       }}
     >
-      {/* Siempre mostrar opciones de Aprobar y Rechazar */}
-      <>
-          <MenuItem
-            onClick={() => handleAction(() => factura && onApprove(factura))}
-            sx={{
-              color: zentriaColors.verde.main,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                backgroundColor: `${zentriaColors.verde.main}15`,
-                transform: 'translateX(4px)',
-              },
-            }}
-          >
-            <ListItemIcon>
-              <CheckCircle fontSize="small" sx={{ color: zentriaColors.verde.main }} />
-            </ListItemIcon>
-            <ListItemText primary="Aprobar" primaryTypographyProps={{ fontWeight: 600 }} />
-          </MenuItem>
+      <MenuItem
+        onClick={() => handleAction(() => factura && onApprove(factura))}
+        sx={{
+          color: zentriaColors.verde.main,
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            backgroundColor: `${zentriaColors.verde.main}15`,
+            transform: 'translateX(4px)',
+          },
+        }}
+      >
+        <ListItemIcon>
+          <CheckCircle fontSize="small" sx={{ color: zentriaColors.verde.main }} />
+        </ListItemIcon>
+        <ListItemText primary="Aprobar" primaryTypographyProps={{ fontWeight: 600 }} />
+      </MenuItem>
 
-          <MenuItem
-            onClick={() => handleAction(() => factura && onReject(factura))}
-            sx={{
-              color: zentriaColors.naranja.main,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                backgroundColor: `${zentriaColors.naranja.main}15`,
-                transform: 'translateX(4px)',
-              },
-            }}
-          >
-            <ListItemIcon>
-              <Cancel fontSize="small" sx={{ color: zentriaColors.naranja.main }} />
-            </ListItemIcon>
-            <ListItemText primary="Rechazar" primaryTypographyProps={{ fontWeight: 600 }} />
-          </MenuItem>
+      <MenuItem
+        onClick={() => handleAction(() => factura && onReject(factura))}
+        sx={{
+          color: zentriaColors.naranja.main,
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            backgroundColor: `${zentriaColors.naranja.main}15`,
+            transform: 'translateX(4px)',
+          },
+        }}
+      >
+        <ListItemIcon>
+          <Cancel fontSize="small" sx={{ color: zentriaColors.naranja.main }} />
+        </ListItemIcon>
+        <ListItemText primary="Rechazar" primaryTypographyProps={{ fontWeight: 600 }} />
+      </MenuItem>
 
-          <Divider sx={{ my: 1 }} />
-      </>
+      <Divider sx={{ my: 1 }} />
 
       <MenuItem
         onClick={() => handleAction(() => factura && onDelete(factura))}

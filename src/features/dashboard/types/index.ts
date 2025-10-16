@@ -15,6 +15,16 @@ export interface Factura {
   responsable_id?: number;
   observaciones?: string;
   archivo_adjunto?: string;
+  // Campos de auditoría (para ADMIN)
+  nombre_responsable?: string;
+  aprobado_por?: string;
+  fecha_aprobacion?: string;
+  rechazado_por?: string;
+  fecha_rechazo?: string;
+  motivo_rechazo?: string;
+  // Campos calculados
+  accion_por?: string;
+  fecha_accion?: string;
 }
 
 export type EstadoFactura =

@@ -36,7 +36,7 @@ const DRAWER_WIDTH = 260;
 // Menús base para todos los usuarios
 const baseMenuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'responsable'] },
-  { text: 'Facturas Pendientes', icon: <DescriptionIcon />, path: '/facturas', roles: ['admin', 'responsable'] },
+  { text: 'Por Revisar', icon: <DescriptionIcon />, path: '/facturas', roles: ['admin', 'responsable'] },
 ];
 
 // Menús adicionales para administradores
