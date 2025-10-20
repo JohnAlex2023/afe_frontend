@@ -45,6 +45,7 @@ export interface AsignacionNit {
   responsable_id: number;
   area: string;
   permitir_aprobacion_automatica: boolean;
+  requiere_revision_siempre: boolean;
   activo: boolean;
   creado_en: string;
   actualizado_en?: string;
@@ -61,6 +62,7 @@ export interface AsignacionNitCreate {
   responsable_id: number;
   area?: string;
   permitir_aprobacion_automatica?: boolean;
+  requiere_revision_siempre?: boolean;
   activo?: boolean;
 }
 

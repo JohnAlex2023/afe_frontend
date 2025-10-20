@@ -116,10 +116,23 @@ function AsignacionesTab() {
     setError(null);
 
     try {
+      // Obtener datos del proveedor seleccionado
+      const proveedor = proveedores.find((p) => p.id === formData.proveedor_id);
+
+      if (!proveedor) {
+        setError('Proveedor no encontrado');
+        return;
+      }
+
+      // Crear asignación con estructura correcta (NIT-based)
       await dispatch(
         createAsignacionThunk({
+          nit: proveedor.nit,
+          nombre_proveedor: proveedor.razon_social || proveedor.nombre || '',
           responsable_id: formData.responsable_id,
-          proveedor_id: formData.proveedor_id,
+          area: proveedor.area,
+          permitir_aprobacion_automatica: true,
+          requiere_revision_siempre: false,
         })
       ).unwrap();
 
@@ -129,7 +142,10 @@ function AsignacionesTab() {
         setSuccess(null);
       }, 1500);
     } catch (err: any) {
-      setError(err.message || 'Error al crear la asignación');
+      // Manejar errores específicos del backend
+      const errorMessage = err.response?.data?.detail || err.message || 'Error al crear la asignación';
+      setError(errorMessage);
+      console.error('Error al crear asignación:', err);
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +179,7 @@ function AsignacionesTab() {
       });
 
       setSuccess(
-        `${response.creadas} asignaciones creadas, ${response.actualizadas} actualizadas`
+        `${response.creadas} asignaciones creadas, ${response.actualizadas} actualizadas, ${response.omitidas} omitidas`
       );
       dispatch(fetchAsignaciones());
       setTimeout(() => {
@@ -171,7 +187,10 @@ function AsignacionesTab() {
         setSuccess(null);
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Error al crear asignaciones masivas');
+      // Manejar errores específicos del backend
+      const errorMessage = err.response?.data?.detail || err.message || 'Error al crear asignaciones masivas';
+      setError(errorMessage);
+      console.error('Error al crear asignaciones masivas:', err);
     } finally {
       setSubmitting(false);
     }

@@ -57,6 +57,14 @@ function PorResponsableTab() {
     setLoading(true);
     try {
       const data = await getAsignacionesPorResponsable(selectedResponsableId, true);
+
+      // Validar que data y asignaciones existan
+      if (!data || !data.asignaciones) {
+        setViewData(null);
+        setLoading(false);
+        return;
+      }
+
       // Transformar asignaciones a formato compatible con la vista
       const transformedData = {
         responsable_id: data.responsable_id,
