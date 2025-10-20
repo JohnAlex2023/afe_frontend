@@ -59,20 +59,11 @@ import type { Workflow } from '../../types/factura.types';
  */
 
 function FacturasPage() {
-  console.log('[FacturasPage] Componente renderizado');
-
   const dispatch = useAppDispatch();
   const facturasState = useAppSelector((state) => state.facturas);
   const { pendientes = [], loading = false } = facturasState || {};
   const user = useAppSelector((state) => state.auth.user);
   const { showNotification } = useNotification();
-
-  console.log('[FacturasPage] Estado:', {
-    pendientes: pendientes?.length,
-    loading,
-    user: user?.id,
-    facturasState
-  });
 
   // Estados de modales y acciones
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
@@ -98,9 +89,7 @@ function FacturasPage() {
 
   // Filtrado y búsqueda de facturas
   const filteredFacturas = useMemo(() => {
-    console.log('[FacturasPage] Filtrando facturas:', pendientes?.length);
     if (!Array.isArray(pendientes)) {
-      console.warn('[FacturasPage] pendientes no es un array:', pendientes);
       return [];
     }
 
@@ -168,7 +157,6 @@ function FacturasPage() {
   // Funciones de exportación
   const handleExportExcel = () => {
     try {
-      console.log('[FacturasPage] Exportando a Excel:', filteredFacturas.length);
       // Crear CSV manualmente
       const headers = ['Factura', 'Proveedor', 'NIT', 'Monto', 'Estado', 'Similitud %'];
       const rows = filteredFacturas.map((f) => [
@@ -244,8 +232,6 @@ function FacturasPage() {
       // Cargar detalles completos de la factura
       const detalles = await dispatch(fetchFacturaDetalle(facturaId)).unwrap();
 
-      console.log('[handleViewDetails] Detalles recibidos:', detalles);
-
       // Combinar factura y workflow en un solo objeto para el modal
       // Mapear factura_mes_anterior a factura_referencia para compatibilidad con el modal
       const workflowCompleto = {
@@ -255,12 +241,9 @@ function FacturasPage() {
         contexto_historico: detalles.contexto_historico
       };
 
-      console.log('[handleViewDetails] Workflow completo:', workflowCompleto);
-
       setSelectedWorkflow(workflowCompleto);
       setDetailModalOpen(true);
     } catch (error: any) {
-      console.error('Error al cargar detalles de factura:', error);
       showNotification('Error al cargar detalles de la factura', 'error');
     }
   };
@@ -299,7 +282,6 @@ function FacturasPage() {
         dispatch(fetchFacturasPendientes(user.id));
       }
     } catch (error: any) {
-      console.error('Error al aprobar factura:', error);
       showNotification(
         `❌ Error al aprobar factura: ${error.message || 'Error desconocido'}`,
         'error'
@@ -334,7 +316,6 @@ function FacturasPage() {
         dispatch(fetchFacturasPendientes(user.id));
       }
     } catch (error: any) {
-      console.error('Error al rechazar factura:', error);
       showNotification(
         `❌ Error al rechazar factura: ${error.message || 'Error desconocido'}`,
         'error'
@@ -426,7 +407,7 @@ function FacturasPage() {
       {/* Barra de búsqueda y filtros */}
       <Paper elevation={2} sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               placeholder="Buscar por factura, proveedor o NIT..."
@@ -453,7 +434,7 @@ function FacturasPage() {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Box display="flex" gap={1} justifyContent="flex-end">
               <Button
                 variant={showFilters ? 'contained' : 'outlined'}
@@ -486,7 +467,7 @@ function FacturasPage() {
         <Collapse in={showFilters}>
           <Divider sx={{ my: 2 }} />
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -504,7 +485,7 @@ function FacturasPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Nivel de Similitud</InputLabel>
                 <Select

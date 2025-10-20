@@ -81,7 +81,13 @@ export const LineChartMontos: React.FC<LineChartMontosProps> = ({ data, loading 
         p: 3,
         border: '1px solid',
         borderColor: 'divider',
-        borderRadius: 2,
+        borderRadius: 3,
+        height: '100%',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        transition: 'box-shadow 0.3s ease',
+        '&:hover': {
+          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+        },
       }}
     >
       <Box mb={2}>
@@ -93,7 +99,7 @@ export const LineChartMontos: React.FC<LineChartMontosProps> = ({ data, loading 
         </Typography>
       </Box>
 
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={280}>
         <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis

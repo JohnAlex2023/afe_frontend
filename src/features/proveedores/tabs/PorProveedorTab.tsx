@@ -42,7 +42,6 @@ function PorProveedorTab() {
       // Buscar proveedor seleccionado para obtener su NIT
       const proveedor = proveedores.find((p) => p.id === selectedProveedorId);
       if (!proveedor) {
-        console.error('Proveedor no encontrado');
         setLoading(false);
         return;
       }
@@ -73,7 +72,7 @@ function PorProveedorTab() {
 
       setViewData(transformedData);
     } catch (error: any) {
-      console.error('Error al cargar datos:', error);
+      // Error al cargar datos
     } finally {
       setLoading(false);
     }

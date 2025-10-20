@@ -93,7 +93,6 @@ export const useDashboardStats = (): UseDashboardStatsReturn => {
           const periodo = item.periodo || `${item.año}-${String(item.mes).padStart(2, '0')}`;
           const parts = periodo.split('-');
           if (parts.length !== 2) {
-            console.warn('Invalid periodo format:', periodo);
             return null;
           }
           const [year, month] = parts;
@@ -128,7 +127,6 @@ export const useDashboardStats = (): UseDashboardStatsReturn => {
       setWorkflowStats(workflowResponse.data);
       setComparisonStats(comparisonResponse.data);
     } catch (err: any) {
-      console.error('Error fetching dashboard stats:', err);
       setError(err.response?.data?.detail || 'Error al cargar estadísticas');
     } finally {
       setLoading(false);

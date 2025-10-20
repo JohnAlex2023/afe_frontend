@@ -83,7 +83,7 @@ function ProveedoresManagementPage() {
         dispatch(fetchAsignaciones({ skip: 0, limit: 1000 })).unwrap(),
       ]);
     } catch (error: any) {
-      console.error('Error al actualizar datos:', error);
+      // Error al actualizar datos
     }
   };
 

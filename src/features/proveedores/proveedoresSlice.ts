@@ -310,7 +310,8 @@ const proveedoresSlice = createSlice({
       })
       .addCase(fetchAsignaciones.fulfilled, (state, action) => {
         state.asignacionesLoading = false;
-        state.asignaciones = action.payload;
+        // Filtro adicional de seguridad: solo mostrar asignaciones activas
+        state.asignaciones = action.payload.filter((a) => a.activo !== false);
         state.lastSync = new Date().toISOString();
       })
       .addCase(fetchAsignaciones.rejected, (state, action) => {

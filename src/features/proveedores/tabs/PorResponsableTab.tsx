@@ -47,7 +47,7 @@ function PorResponsableTab() {
       const data = await getResponsables({ activo: true });
       setResponsables(data);
     } catch (error) {
-      console.error('Error al cargar responsables:', error);
+      // Error al cargar responsables
     }
   };
 
@@ -80,7 +80,7 @@ function PorResponsableTab() {
       };
       setViewData(transformedData);
     } catch (error: any) {
-      console.error('Error al cargar datos:', error);
+      // Error al cargar datos
     } finally {
       setLoading(false);
     }

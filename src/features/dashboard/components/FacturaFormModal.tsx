@@ -112,7 +112,7 @@ export const FacturaFormModal: React.FC<FacturaFormModalProps> = ({
 
         <Grid container spacing={3}>
           {/* Número de Factura */}
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Número de Factura"
@@ -135,7 +135,7 @@ export const FacturaFormModal: React.FC<FacturaFormModalProps> = ({
           </Grid>
 
           {/* NIT Emisor */}
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="NIT Emisor"
@@ -158,7 +158,7 @@ export const FacturaFormModal: React.FC<FacturaFormModalProps> = ({
           </Grid>
 
           {/* Nombre Emisor */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               label="Nombre Emisor"
@@ -181,7 +181,7 @@ export const FacturaFormModal: React.FC<FacturaFormModalProps> = ({
           </Grid>
 
           {/* Monto Total */}
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Monto Total"
@@ -208,7 +208,7 @@ export const FacturaFormModal: React.FC<FacturaFormModalProps> = ({
           </Grid>
 
           {/* Fecha Emisión */}
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Fecha Emisión"
@@ -232,7 +232,7 @@ export const FacturaFormModal: React.FC<FacturaFormModalProps> = ({
           </Grid>
 
           {/* Fecha Vencimiento */}
-          <Grid item xs={12} sm={6}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               fullWidth
               label="Fecha Vencimiento"
@@ -256,7 +256,7 @@ export const FacturaFormModal: React.FC<FacturaFormModalProps> = ({
           </Grid>
 
           {/* Observaciones */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               label="Observaciones"

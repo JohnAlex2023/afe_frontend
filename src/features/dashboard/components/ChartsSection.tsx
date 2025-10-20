@@ -55,19 +55,17 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({ stats: dashboardSt
   return (
     <Box sx={{ mb: 4 }}>
       <Grid container spacing={3}>
-        {/* Top Row - Main Charts */}
-        <Grid item xs={12} lg={8}>
+        {/* Single Row - All 4 charts in one line */}
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <BarChartFacturas data={monthlyStats} loading={loading} />
         </Grid>
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <PieChartEstados data={pieChartData} loading={loading} />
         </Grid>
-
-        {/* Bottom Row - Secondary Charts */}
-        <Grid item xs={12} lg={8}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <LineChartMontos data={monthlyStats} loading={loading} />
         </Grid>
-        <Grid item xs={12} lg={4}>
+        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <GaugeChartKPI data={gaugeChartData} loading={loading} />
         </Grid>
       </Grid>

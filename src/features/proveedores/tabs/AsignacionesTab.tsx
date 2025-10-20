@@ -26,8 +26,9 @@ import {
   Alert,
   CircularProgress,
   Chip,
+  Checkbox,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import {
   fetchAsignaciones,
@@ -57,19 +58,27 @@ function AsignacionesTab() {
 
   const [openDialog, setOpenDialog] = useState(false);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
+  const [openWarningDialog, setOpenWarningDialog] = useState(false); // Modal de advertencia
+  const [warningMessage, setWarningMessage] = useState<string>(''); // Mensaje de advertencia
   const [responsables, setResponsables] = useState<Responsable[]>([]);
   const [formData, setFormData] = useState<AsignacionFormData>({
     responsable_id: null,
     proveedor_id: null,
   });
   const [bulkResponsableId, setBulkResponsableId] = useState<number | null>(null);
-  const [bulkProveedores, setBulkProveedores] = useState<number[]>([]);
+  const [bulkProveedores, setBulkProveedores] = useState<string[]>([]);
+  const [bulkNitsRechazados, setBulkNitsRechazados] = useState<string[]>([]); // NITs que no están registrados
+  const [hasPendingInput, setHasPendingInput] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedAsignaciones, setSelectedAsignaciones] = useState<number[]>([]);
+  const listboxRef = React.useRef<HTMLUListElement | null>(null);
+  const scrollPositionRef = React.useRef<number>(0);
 
   useEffect(() => {
-    dispatch(fetchAsignaciones());
+    // Cargar TODAS las asignaciones (activas e inactivas) para ver asignaciones huérfanas
+    dispatch(fetchAsignaciones({}));
     dispatch(fetchProveedores({}));
     loadResponsables();
   }, [dispatch]);
@@ -79,7 +88,7 @@ function AsignacionesTab() {
       const data = await getResponsables({ limit: 1000 });
       setResponsables(data);
     } catch (err) {
-      console.error('Error cargando responsables:', err);
+      // Error cargando responsables
     }
   };
 
@@ -97,6 +106,8 @@ function AsignacionesTab() {
   const handleOpenBulkDialog = () => {
     setBulkResponsableId(null);
     setBulkProveedores([]);
+    setBulkNitsRechazados([]);
+    setHasPendingInput(false);
     setError(null);
     setSuccess(null);
     setOpenBulkDialog(true);
@@ -145,15 +156,71 @@ function AsignacionesTab() {
       // Manejar errores específicos del backend
       const errorMessage = err.response?.data?.detail || err.message || 'Error al crear la asignación';
       setError(errorMessage);
-      console.error('Error al crear asignación:', err);
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleBulkSubmit = async () => {
-    if (!bulkResponsableId || bulkProveedores.length === 0) {
-      setError('Debe seleccionar un responsable y al menos un proveedor');
+    // PRIMERO: Procesar cualquier input pendiente en el campo de texto
+    if (hasPendingInput) {
+      const autocompleteInput = document.querySelector<HTMLInputElement>(
+        'input[placeholder*="NITs separados por coma"]'
+      );
+
+      if (autocompleteInput && autocompleteInput.value.trim()) {
+        const inputValue = autocompleteInput.value.trim();
+
+        // Separar NITs por coma
+        const nits = inputValue
+          .split(',')
+          .map((nit) => nit.trim())
+          .filter((nit) => nit.length > 0);
+
+        // Validar NITs
+        const nitsNoEncontrados: string[] = [];
+        const nitsValidos = nits.filter((nit) => {
+          const existe = proveedores.some((p) => p.nit === nit);
+          if (!existe) {
+            nitsNoEncontrados.push(nit);
+          }
+          return existe;
+        });
+
+        // Agregar a los NITs existentes (sin duplicados)
+        const nitsUnicos = [...new Set([...bulkProveedores, ...nitsValidos])];
+
+        // Guardar NITs rechazados (acumular con los existentes)
+        const rechazadosUnicos = [...new Set([...bulkNitsRechazados, ...nitsNoEncontrados])];
+
+        // Actualizar estados
+        setBulkProveedores(nitsUnicos);
+        setBulkNitsRechazados(rechazadosUnicos);
+        setHasPendingInput(false);
+
+        // Limpiar el input
+        autocompleteInput.value = '';
+
+        // Si no hay NITs válidos después de procesar, mostrar error
+        if (nitsUnicos.length === 0) {
+          setError('Ninguno de los NITs ingresados está registrado como proveedor.');
+          return;
+        }
+
+        // Esperar un tick para que los estados se actualicen
+        setTimeout(() => handleBulkSubmit(), 50);
+        return;
+      }
+    }
+
+    // VALIDACIONES
+    if (!bulkResponsableId) {
+      setError('Debe seleccionar un responsable');
+      return;
+    }
+
+    if (bulkProveedores.length === 0) {
+      setError('Debe seleccionar o ingresar al menos un NIT válido');
       return;
     }
 
@@ -161,36 +228,85 @@ function AsignacionesTab() {
     setError(null);
 
     try {
-      // Convertir proveedor_ids a NITs para el nuevo sistema
-      const nitsData = bulkProveedores.map((provId) => {
-        const prov = proveedores.find((p) => p.id === provId);
+      // bulkProveedores ya contiene solo los NITs VÁLIDOS
+      // Parsear los NITs para la API
+      const nitsData = bulkProveedores.map((nit) => {
+        // Buscar el proveedor en la lista por NIT
+        const proveedorExistente = proveedores.find((p) => p.nit === nit);
+
+        if (!proveedorExistente) {
+          console.error(`NIT ${nit} no encontrado en proveedores, esto no debería pasar`);
+        }
+
         return {
-          nit: prov?.nit || '',
-          nombre_proveedor: prov?.nombre || '',
-          area: prov?.area || 'General',
+          nit,
+          nombre_proveedor: proveedorExistente?.razon_social || 'Sin nombre',
+          area: proveedorExistente?.area || 'General',
         };
       });
 
-      const response = await createAsignacionesNitBulk({
+      console.log('==== DEBUG ASIGNACIÓN MASIVA ====');
+      console.log('NITs a asignar:', nitsData);
+      console.log('Responsable ID:', bulkResponsableId);
+
+      const requestData = {
         responsable_id: bulkResponsableId,
         nits: nitsData,
         permitir_aprobacion_automatica: true,
         activo: true,
-      });
+      };
+      console.log('Datos completos a enviar:', requestData);
 
-      setSuccess(
-        `${response.creadas} asignaciones creadas, ${response.actualizadas} actualizadas, ${response.omitidas} omitidas`
-      );
-      dispatch(fetchAsignaciones());
-      setTimeout(() => {
-        handleCloseBulkDialog();
-        setSuccess(null);
-      }, 2000);
+      const response = await createAsignacionesNitBulk(requestData);
+
+      console.log('Respuesta del backend:', response);
+      console.log('Errores del backend:', response.errores);
+      console.log('Mensaje del backend:', response.mensaje);
+      console.log('==== FIN DEBUG ====');
+
+      // Recargar asignaciones inmediatamente (todas, incluyendo inactivas)
+      await dispatch(fetchAsignaciones({}));
+
+      // Cerrar el modal de asignación
+      handleCloseBulkDialog();
+
+      // Construir mensaje según resultado
+      let mensajeCompleto = '';
+
+      if (response.creadas > 0) {
+        mensajeCompleto += `✓ Se asignaron ${response.creadas} NIT(s) exitosamente.\n\n`;
+      }
+
+      if (response.actualizadas > 0) {
+        mensajeCompleto += `↻ Se actualizaron ${response.actualizadas} asignación(es).\n\n`;
+      }
+
+      if (response.omitidas > 0) {
+        mensajeCompleto += `⚠ ${response.omitidas} NIT(s) ya estaban asignados a este responsable y fueron omitidos.\n\n`;
+        mensajeCompleto += `NOTA: Si no ve estas asignaciones en la lista, es posible que estén inactivas o huérfanas. Contacte al administrador del sistema para limpiar asignaciones inactivas.\n\n`;
+      }
+
+      if (bulkNitsRechazados.length > 0) {
+        mensajeCompleto += `✗ Los siguientes NITs NO fueron asignados porque no están registrados:\n\n${bulkNitsRechazados.join(', ')}\n\nPor favor, regístrelos primero en Gestión de Proveedores → Proveedores.`;
+      }
+
+      // Si hay mensajes de advertencia o NITs rechazados, mostrar modal
+      if (response.omitidas > 0 || bulkNitsRechazados.length > 0 || response.actualizadas > 0) {
+        setWarningMessage(mensajeCompleto.trim());
+        setOpenWarningDialog(true);
+      } else if (response.creadas > 0) {
+        // Solo éxito total
+        setSuccess(`${response.creadas} asignación(es) creada(s) exitosamente`);
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        // No se creó ni actualizó nada
+        setError('No se pudo realizar ninguna asignación. Verifique los datos.');
+      }
     } catch (err: any) {
+      console.error('Error al crear asignaciones:', err);
       // Manejar errores específicos del backend
       const errorMessage = err.response?.data?.detail || err.message || 'Error al crear asignaciones masivas';
       setError(errorMessage);
-      console.error('Error al crear asignaciones masivas:', err);
     } finally {
       setSubmitting(false);
     }
@@ -206,14 +322,90 @@ function AsignacionesTab() {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectedAsignaciones.length === asignaciones.length) {
+      setSelectedAsignaciones([]);
+    } else {
+      setSelectedAsignaciones(asignaciones.map((a) => a.id));
+    }
+  };
+
+  const handleSelectOne = (id: number) => {
+    if (selectedAsignaciones.includes(id)) {
+      setSelectedAsignaciones(selectedAsignaciones.filter((selId) => selId !== id));
+    } else {
+      setSelectedAsignaciones([...selectedAsignaciones, id]);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedAsignaciones.length === 0) return;
+
+    const confirmMessage =
+      selectedAsignaciones.length === 1
+        ? '¿Está seguro de eliminar esta asignación?'
+        : `¿Está seguro de eliminar ${selectedAsignaciones.length} asignaciones?`;
+
+    if (window.confirm(confirmMessage)) {
+      setSubmitting(true);
+      setError(null);
+      setSuccess(null);
+      let errores = 0;
+      let eliminadas = 0;
+
+      for (const id of selectedAsignaciones) {
+        try {
+          await dispatch(deleteAsignacionThunk(id)).unwrap();
+          eliminadas++;
+        } catch (err: any) {
+          errores++;
+        }
+      }
+
+      // Recargar asignaciones desde el backend para sincronizar (todas)
+      await dispatch(fetchAsignaciones({}));
+
+      if (eliminadas > 0) {
+        setSuccess(`${eliminadas} asignacion(es) eliminada(s) exitosamente`);
+      }
+      if (errores > 0) {
+        setError(`Error al eliminar ${errores} asignacion(es)`);
+      }
+
+      setSelectedAsignaciones([]);
+      setSubmitting(false);
+    }
+  };
+
   return (
     <Box>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" fontWeight={600}>
-          Gestión de Asignaciones
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h6" fontWeight={600}>
+            Gestión de Asignaciones
+          </Typography>
+          {selectedAsignaciones.length > 0 && (
+            <Chip
+              label={`${selectedAsignaciones.length} seleccionada(s)`}
+              color="primary"
+              size="small"
+              onDelete={() => setSelectedAsignaciones([])}
+            />
+          )}
+        </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          {selectedAsignaciones.length > 0 && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteSweepIcon />}
+              onClick={handleDeleteSelected}
+              disabled={submitting}
+            >
+              Eliminar {selectedAsignaciones.length}
+            </Button>
+          )}
           <Button variant="outlined" startIcon={<AddIcon />} onClick={handleOpenBulkDialog}>
             Asignación Masiva
           </Button>
@@ -240,6 +432,14 @@ function AsignacionesTab() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  checked={asignaciones.length > 0 && selectedAsignaciones.length === asignaciones.length}
+                  indeterminate={selectedAsignaciones.length > 0 && selectedAsignaciones.length < asignaciones.length}
+                  onChange={handleSelectAll}
+                  disabled={asignaciones.length === 0}
+                />
+              </TableCell>
               <TableCell>ID</TableCell>
               <TableCell>Responsable</TableCell>
               <TableCell>Proveedor</TableCell>
@@ -250,19 +450,30 @@ function AsignacionesTab() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} align="center">
+                <TableCell colSpan={6} align="center">
                   <CircularProgress size={24} />
                 </TableCell>
               </TableRow>
             ) : asignaciones.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center">
+                <TableCell colSpan={6} align="center">
                   <Typography color="text.secondary">No hay asignaciones registradas</Typography>
                 </TableCell>
               </TableRow>
             ) : (
               asignaciones.map((asignacion) => (
-                <TableRow key={asignacion.id}>
+                <TableRow
+                  key={asignacion.id}
+                  hover
+                  selected={selectedAsignaciones.includes(asignacion.id)}
+                  sx={{ cursor: 'pointer' }}
+                >
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedAsignaciones.includes(asignacion.id)}
+                      onChange={() => handleSelectOne(asignacion.id)}
+                    />
+                  </TableCell>
                   <TableCell>{asignacion.id}</TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight={500}>
@@ -337,25 +548,320 @@ function AsignacionesTab() {
               onChange={(_, newValue) => setBulkResponsableId(newValue?.id || null)}
               renderInput={(params) => <TextField {...params} label="Responsable" required />}
             />
+            {/* Autocomplete de NITs existentes */}
             <Autocomplete
               multiple
-              options={proveedores}
-              getOptionLabel={(option) => `${option.nombre} - ${option.nit}`}
-              value={proveedores.filter((p) => bulkProveedores.includes(p.id))}
-              onChange={(_, newValue) => setBulkProveedores(newValue.map((v) => v.id))}
+              freeSolo
+              disableCloseOnSelect
+              disableListWrap
+              options={proveedores.map((p) => p.nit)}
+              value={bulkProveedores}
+              onChange={(_, newValue) => {
+                // Procesar NITs (pueden venir pegados con comas o seleccionados)
+                const nitsToProcess = newValue.flatMap((item) => {
+                  // Si contiene comas, separar múltiples NITs
+                  if (item.includes(',')) {
+                    return item
+                      .split(',')
+                      .map((nit) => nit.trim())
+                      .filter((nit) => nit.length > 0);
+                  }
+                  return [item.trim()];
+                });
+
+                // Eliminar duplicados
+                const nitsUnicos = [...new Set(nitsToProcess)];
+
+                // Validar cada NIT contra proveedores registrados
+                const nitsNoEncontrados: string[] = [];
+                const nitsValidos = nitsUnicos.filter((nit) => {
+                  const existe = proveedores.some((p) => p.nit === nit);
+                  if (!existe) {
+                    nitsNoEncontrados.push(nit);
+                  }
+                  return existe;
+                });
+
+                // Guardar NITs rechazados en el estado para mostrarlos después
+                setBulkNitsRechazados(nitsNoEncontrados);
+
+                if (nitsNoEncontrados.length > 0) {
+                  setError(
+                    `Los siguientes NITs no están registrados como proveedores: ${nitsNoEncontrados.join(', ')}. Se asignarán solo los NITs válidos.`
+                  );
+                } else {
+                  setError(null);
+                }
+
+                setBulkProveedores(nitsValidos);
+              }}
+              ListboxProps={{
+                style: { maxHeight: '300px' },
+              }}
+              renderTags={(value, getTagProps) =>
+                value.map((nit, index) => {
+                  const proveedor = proveedores.find((p) => p.nit === nit);
+
+                  return (
+                    <Chip
+                      {...getTagProps({ index })}
+                      key={nit}
+                      label={`${nit} - ${proveedor?.razon_social || 'N/A'}`}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  );
+                })
+              }
+              renderOption={(props, option, { selected }) => {
+                const proveedor = proveedores.find((p) => p.nit === option);
+                const { onClick, ...otherProps } = props;
+
+                return (
+                  <li
+                    {...otherProps}
+                    key={option}
+                    onClick={(e) => {
+                      // Prevenir el scroll automático al inicio
+                      e.preventDefault();
+                      if (onClick) {
+                        onClick(e);
+                      }
+                    }}
+                  >
+                    <Checkbox
+                      icon={<span style={{ width: 17, height: 17, border: '2px solid #ccc', borderRadius: 3 }} />}
+                      checkedIcon={<span style={{ width: 17, height: 17, backgroundColor: '#9c27b0', border: '2px solid #9c27b0', borderRadius: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 12 }}>✓</span>}
+                      checked={selected}
+                      sx={{ marginRight: 1 }}
+                    />
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography variant="body2" fontWeight={500}>
+                        {option}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {proveedor?.razon_social || 'Sin razón social'}
+                      </Typography>
+                    </Box>
+                  </li>
+                );
+              }}
+              componentsProps={{
+                paper: {
+                  sx: {
+                    '& .MuiAutocomplete-listbox': {
+                      maxHeight: '300px',
+                      paddingBottom: '48px', // Espacio para el botón
+                    },
+                  },
+                },
+                popper: {
+                  placement: 'bottom-start',
+                  modifiers: [
+                    {
+                      name: 'flip',
+                      enabled: false,
+                    },
+                  ],
+                },
+              }}
+              ListboxComponent={(props) => {
+                const handleScroll = (e: React.UIEvent<HTMLUListElement>) => {
+                  scrollPositionRef.current = e.currentTarget.scrollTop;
+                };
+
+                return (
+                  <Box>
+                    <ul
+                      {...props}
+                      ref={(node) => {
+                        listboxRef.current = node;
+                        if (node && scrollPositionRef.current > 0) {
+                          // Restaurar posición del scroll
+                          node.scrollTop = scrollPositionRef.current;
+                        }
+                      }}
+                      onScroll={handleScroll}
+                      style={{ ...props.style, paddingBottom: 0 }}
+                    />
+                    <Box
+                      sx={{
+                        position: 'sticky',
+                        bottom: 0,
+                        backgroundColor: 'background.paper',
+                        borderTop: '1px solid',
+                        borderColor: 'divider',
+                        padding: 1,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        zIndex: 1,
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        {bulkProveedores.length} NIT{bulkProveedores.length !== 1 ? 's' : ''} seleccionado
+                        {bulkProveedores.length !== 1 ? 's' : ''}
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Cerrar el dropdown
+                          (document.activeElement as HTMLElement)?.blur();
+                        }}
+                      >
+                        Listo
+                      </Button>
+                    </Box>
+                  </Box>
+                );
+              }}
               renderInput={(params) => (
-                <TextField {...params} label="Proveedores (selección múltiple)" required />
+                <TextField
+                  {...params}
+                  label="Seleccionar NITs"
+                  placeholder="Busque, seleccione o pegue NITs separados por coma"
+                  helperText="Puede seleccionar de la lista o pegar múltiples NITs separados por comas (Ej: 900123456-7, 800111222-3, 900333444-5)"
+                  onChange={(e) => {
+                    // Detectar si hay texto con comas en el input
+                    const inputValue = (e.target as HTMLInputElement).value;
+                    setHasPendingInput(inputValue.includes(','));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const inputValue = (e.target as HTMLInputElement).value;
+
+                      if (inputValue && inputValue.includes(',')) {
+                        // Separar NITs por coma
+                        const nits = inputValue
+                          .split(',')
+                          .map((nit) => nit.trim())
+                          .filter((nit) => nit.length > 0);
+
+                        // Validar NITs
+                        const nitsNoEncontrados: string[] = [];
+                        const nitsValidos = nits.filter((nit) => {
+                          const existe = proveedores.some((p) => p.nit === nit);
+                          if (!existe) {
+                            nitsNoEncontrados.push(nit);
+                          }
+                          return existe;
+                        });
+
+                        // Agregar a los NITs existentes (sin duplicados)
+                        const nitsUnicos = [...new Set([...bulkProveedores, ...nitsValidos])];
+                        setBulkProveedores(nitsUnicos);
+
+                        // Guardar NITs rechazados (acumular con los existentes)
+                        const rechazadosUnicos = [...new Set([...bulkNitsRechazados, ...nitsNoEncontrados])];
+                        setBulkNitsRechazados(rechazadosUnicos);
+
+                        // Mostrar alerta si hay NITs no registrados
+                        if (nitsNoEncontrados.length > 0) {
+                          setError(
+                            `Los siguientes NITs no están registrados: ${nitsNoEncontrados.join(', ')}. Se asignarán solo los NITs válidos.`
+                          );
+                        } else {
+                          setError(null);
+                        }
+
+                        // Limpiar el input y el estado
+                        (e.target as HTMLInputElement).value = '';
+                        setHasPendingInput(false);
+                      }
+                    }
+                  }}
+                />
               )}
             />
-            <Typography variant="caption" color="text.secondary">
-              Seleccione múltiples proveedores para asignar al responsable seleccionado
-            </Typography>
+
+            {bulkProveedores.length > 0 && (
+              <Alert severity="info" sx={{ mt: 1 }}>
+                <Typography variant="body2" fontWeight={500}>
+                  {bulkProveedores.length} NIT{bulkProveedores.length !== 1 ? 's' : ''} seleccionado
+                  {bulkProveedores.length !== 1 ? 's' : ''} para asignar
+                </Typography>
+              </Alert>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseBulkDialog}>Cancelar</Button>
-          <Button onClick={handleBulkSubmit} variant="contained" disabled={submitting}>
-            {submitting ? <CircularProgress size={24} /> : `Asignar ${bulkProveedores.length} proveedores`}
+          <Button onClick={handleCloseBulkDialog} disabled={submitting}>
+            Cancelar
+          </Button>
+          <Button onClick={handleBulkSubmit} variant="contained" disabled={submitting || (!bulkResponsableId)}>
+            {submitting ? (
+              <CircularProgress size={24} />
+            ) : hasPendingInput ? (
+              'Asignar NITs'
+            ) : bulkProveedores.length === 0 ? (
+              'Asignar NITs'
+            ) : (
+              `Asignar ${bulkProveedores.length} NIT${bulkProveedores.length !== 1 ? 's' : ''}`
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Advertencia para NITs no registrados */}
+      <Dialog
+        open={openWarningDialog}
+        onClose={() => setOpenWarningDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderTop: '4px solid',
+              borderColor: 'warning.main',
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'warning.main' }}>
+          <Box
+            component="span"
+            sx={{
+              fontSize: '1.5rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              backgroundColor: 'warning.light',
+              color: 'warning.dark',
+            }}
+          >
+            ⚠
+          </Box>
+          <Typography variant="h6" component="span" fontWeight={600}>
+            Advertencia: NITs no registrados
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography
+            variant="body1"
+            sx={{
+              whiteSpace: 'pre-line',
+              lineHeight: 1.8,
+              color: 'text.primary',
+            }}
+          >
+            {warningMessage}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setOpenWarningDialog(false)}
+            variant="contained"
+            color="primary"
+            fullWidth
+            size="large"
+          >
+            Entendido
           </Button>
         </DialogActions>
       </Dialog>

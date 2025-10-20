@@ -112,8 +112,6 @@ export const PieChartEstados: React.FC<PieChartEstadosProps> = ({ data, loading 
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
-    if (percent < 0.05) return null; // Don't show label if less than 5%
-
     return (
       <text
         x={x}
@@ -136,7 +134,13 @@ export const PieChartEstados: React.FC<PieChartEstadosProps> = ({ data, loading 
         p: 3,
         border: '1px solid',
         borderColor: 'divider',
-        borderRadius: 2,
+        borderRadius: 3,
+        height: '100%',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        transition: 'box-shadow 0.3s ease',
+        '&:hover': {
+          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+        },
       }}
     >
       <Box mb={2}>
@@ -148,7 +152,7 @@ export const PieChartEstados: React.FC<PieChartEstadosProps> = ({ data, loading 
         </Typography>
       </Box>
 
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={280}>
         <PieChart>
           <Pie
             data={chartData}

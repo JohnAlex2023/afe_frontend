@@ -126,7 +126,7 @@ function ProveedoresTab() {
       setDialogOpen(false);
       dispatch(fetchProveedores({ skip: 0, limit: 1000 }));
     } catch (error: any) {
-      console.error('Error al guardar proveedor:', error);
+      // Error al guardar proveedor
     }
   };
 
@@ -138,7 +138,7 @@ function ProveedoresTab() {
       setDeleteDialogOpen(false);
       setSelectedProveedor(null);
     } catch (error: any) {
-      console.error('Error al eliminar proveedor:', error);
+      // Error al eliminar proveedor
     }
   };
 
@@ -277,7 +277,7 @@ function ProveedoresTab() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 required
@@ -287,7 +287,7 @@ function ProveedoresTab() {
                 disabled={editMode}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 required
@@ -298,7 +298,7 @@ function ProveedoresTab() {
                 }
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Área"
@@ -306,7 +306,7 @@ function ProveedoresTab() {
                 onChange={(e) => setFormData({ ...formData, area: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Email"
@@ -317,7 +317,7 @@ function ProveedoresTab() {
                 }
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Teléfono"
@@ -327,7 +327,7 @@ function ProveedoresTab() {
                 }
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Dirección"
@@ -337,7 +337,7 @@ function ProveedoresTab() {
                 }
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Switch

@@ -12,7 +12,6 @@ import { NotificationProvider } from './components/Notifications/NotificationPro
  */
 
 function App() {
-  console.log('[app] App componente renderizado')
   return (
     <Provider store={store}>
       <ThemeProvider theme={zentriaTheme}>
