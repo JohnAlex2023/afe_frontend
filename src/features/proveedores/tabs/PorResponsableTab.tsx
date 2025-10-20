@@ -1,6 +1,9 @@
 /**
  * Tab de Vista por Responsable
- * Muestra proveedores asignados a un responsable seleccionado
+ * Muestra proveedores (NITs) asignados a un responsable seleccionado
+ *
+ * @version 2.0 - Migrado a asignacion-nit
+ * @date 2025-10-19
  */
 import React, { useState } from 'react';
 import {
@@ -21,8 +24,7 @@ import {
   Chip,
   CircularProgress,
 } from '@mui/material';
-import { getProveedoresDeResponsable } from '../../../services/responsableProveedor.api';
-import apiClient from '../../../services/api';
+import { getAsignacionesPorResponsable, getResponsables } from '../../../services/asignacionNit.api';
 
 interface Responsable {
   id: number;
@@ -42,10 +44,10 @@ function PorResponsableTab() {
 
   const loadResponsables = async () => {
     try {
-      const response = await apiClient.get('/responsables/');
-      setResponsables(response.data);
+      const data = await getResponsables({ activo: true });
+      setResponsables(data);
     } catch (error) {
-      console.error(error);
+      console.error('Error al cargar responsables:', error);
     }
   };
 
@@ -54,8 +56,21 @@ function PorResponsableTab() {
 
     setLoading(true);
     try {
-      const data = await getProveedoresDeResponsable(selectedResponsableId);
-      setViewData(data);
+      const data = await getAsignacionesPorResponsable(selectedResponsableId, true);
+      // Transformar asignaciones a formato compatible con la vista
+      const transformedData = {
+        responsable_id: data.responsable_id,
+        responsable: data.responsable,
+        proveedores: data.asignaciones.map((asig) => ({
+          asignacion_id: asig.id,
+          nit: asig.nit,
+          razon_social: asig.nombre_proveedor,
+          area: asig.area,
+          activo: asig.activo,
+        })),
+        total: data.total,
+      };
+      setViewData(transformedData);
     } catch (error: any) {
       console.error('Error al cargar datos:', error);
     } finally {

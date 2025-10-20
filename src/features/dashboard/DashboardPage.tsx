@@ -171,7 +171,8 @@ function DashboardPage() {
     if (!selectedFacturaForAction) return;
 
     try {
-      await facturasService.approveFactura(selectedFacturaForAction.id, user?.usuario || '', observaciones);
+      // IMPORTANTE: Enviar el nombre completo del usuario, no el username
+      await facturasService.approveFactura(selectedFacturaForAction.id, user?.nombre || user?.usuario || '', observaciones);
       setApprovalDialogOpen(false);
       setSelectedFacturaForAction(null);
 
@@ -190,7 +191,8 @@ function DashboardPage() {
     if (!selectedFacturaForAction) return;
 
     try {
-      await facturasService.rejectFactura(selectedFacturaForAction.id, user?.usuario || '', motivo, detalle);
+      // IMPORTANTE: Enviar el nombre completo del usuario, no el username
+      await facturasService.rejectFactura(selectedFacturaForAction.id, user?.nombre || user?.usuario || '', motivo, detalle);
       setRejectionDialogOpen(false);
       setSelectedFacturaForAction(null);
 

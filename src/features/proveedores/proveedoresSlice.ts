@@ -1,6 +1,9 @@
 /**
- * Redux Slice para gestión de Proveedores y Asignaciones
+ * Redux Slice para gestión de Proveedores y Asignaciones NIT
  * Implementa patrón de estado normalizado y manejo de loading/error states
+ *
+ * @version 2.0 - Migrado a asignacion-nit
+ * @date 2025-10-19
  */
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../../app/store';
@@ -15,14 +18,14 @@ import {
   type ProveedorUpdate,
 } from '../../services/proveedores.api';
 import {
-  getAsignaciones,
-  createAsignacion,
-  updateAsignacion,
-  deleteAsignacion,
-  type AsignacionResponsableProveedor,
-  type AsignacionCreate,
-  type AsignacionUpdate,
-} from '../../services/responsableProveedor.api';
+  getAsignacionesNit,
+  createAsignacionNit,
+  updateAsignacionNit,
+  deleteAsignacionNit,
+  type AsignacionNit,
+  type AsignacionNitCreate,
+  type AsignacionNitUpdate,
+} from '../../services/asignacionNit.api';
 
 // ==================== TYPES ====================
 
@@ -33,9 +36,9 @@ interface ProveedoresState {
   proveedoresLoading: boolean;
   proveedoresError: string | null;
 
-  // Asignaciones
-  asignaciones: AsignacionResponsableProveedor[];
-  selectedAsignacion: AsignacionResponsableProveedor | null;
+  // Asignaciones NIT (nuevo sistema)
+  asignaciones: AsignacionNit[];
+  selectedAsignacion: AsignacionNit | null;
   asignacionesLoading: boolean;
   asignacionesError: string | null;
 
@@ -119,7 +122,7 @@ export const deleteProveedorThunk = createAsyncThunk(
   }
 );
 
-// ==================== ASYNC THUNKS - ASIGNACIONES ====================
+// ==================== ASYNC THUNKS - ASIGNACIONES NIT ====================
 
 export const fetchAsignaciones = createAsyncThunk(
   'proveedores/fetchAsignaciones',
@@ -128,13 +131,13 @@ export const fetchAsignaciones = createAsyncThunk(
       skip?: number;
       limit?: number;
       responsable_id?: number;
-      proveedor_id?: number;
+      nit?: string;
       activo?: boolean;
     },
     { rejectWithValue }
   ) => {
     try {
-      const data = await getAsignaciones(params);
+      const data = await getAsignacionesNit(params);
       return data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al cargar asignaciones');
@@ -144,9 +147,9 @@ export const fetchAsignaciones = createAsyncThunk(
 
 export const createAsignacionThunk = createAsyncThunk(
   'proveedores/createAsignacion',
-  async (payload: AsignacionCreate, { rejectWithValue }) => {
+  async (payload: AsignacionNitCreate, { rejectWithValue }) => {
     try {
-      const data = await createAsignacion(payload);
+      const data = await createAsignacionNit(payload);
       return data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al crear asignación');
@@ -156,9 +159,9 @@ export const createAsignacionThunk = createAsyncThunk(
 
 export const updateAsignacionThunk = createAsyncThunk(
   'proveedores/updateAsignacion',
-  async ({ id, data }: { id: number; data: AsignacionUpdate }, { rejectWithValue }) => {
+  async ({ id, data }: { id: number; data: AsignacionNitUpdate }, { rejectWithValue }) => {
     try {
-      const updatedData = await updateAsignacion(id, data);
+      const updatedData = await updateAsignacionNit(id, data);
       return updatedData;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al actualizar asignación');
@@ -170,7 +173,7 @@ export const deleteAsignacionThunk = createAsyncThunk(
   'proveedores/deleteAsignacion',
   async (id: number, { rejectWithValue }) => {
     try {
-      await deleteAsignacion(id);
+      await deleteAsignacionNit(id);
       return id;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.detail || 'Error al eliminar asignación');
@@ -198,7 +201,7 @@ const proveedoresSlice = createSlice({
     },
 
     // Seleccionar asignación
-    selectAsignacion: (state, action: PayloadAction<AsignacionResponsableProveedor | null>) => {
+    selectAsignacion: (state, action: PayloadAction<AsignacionNit | null>) => {
       state.selectedAsignacion = action.payload;
     },
 

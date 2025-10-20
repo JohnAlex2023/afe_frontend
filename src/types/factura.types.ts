@@ -17,6 +17,14 @@ export interface Factura {
   estado: EstadoFactura;
   observaciones?: string;
   periodo_factura?: string;
+
+  // Campos de workflow (computed properties desde backend)
+  aprobado_por_workflow?: string;
+  fecha_aprobacion_workflow?: string;
+  rechazado_por_workflow?: string;
+  fecha_rechazo_workflow?: string;
+  motivo_rechazo_workflow?: string;
+  tipo_aprobacion_workflow?: 'automatica' | 'manual' | 'masiva' | 'forzada';
 }
 
 export interface Proveedor {
@@ -39,11 +47,12 @@ export interface Workflow {
   porcentaje_similitud?: number;
   diferencias_detectadas?: Diferencia[];
   criterios_comparacion?: Record<string, any>;
+  // Campos de aprobación/rechazo (desde workflow_aprobacion_facturas)
   fecha_aprobacion?: string;
-  aprobado_por?: string;
+  aprobada_por?: string;  // Nota: en workflow se llama aprobada_por
   fecha_rechazo?: string;
-  rechazado_por?: string;
-  motivo_rechazo?: string;
+  rechazada_por?: string;  // Nota: en workflow se llama rechazada_por
+  detalle_rechazo?: string;  // Nota: en workflow se llama detalle_rechazo
   factura_mes_anterior?: FacturaAnterior;
   factura_referencia?: Factura;
 }
@@ -159,11 +168,15 @@ export type EstadoWorkflow =
 export type TipoAprobacion = 'automatica' | 'manual';
 
 export interface AprobacionRequest {
+  // El backend maneja automáticamente la creación/actualización del workflow
+  // Solo se necesita el usuario que aprueba
   aprobado_por: string;
   observaciones?: string;
 }
 
 export interface RechazoRequest {
+  // El backend maneja automáticamente la creación/actualización del workflow
+  // Solo se necesita el usuario que rechaza y el motivo
   rechazado_por: string;
   motivo: string;
   detalle?: string;

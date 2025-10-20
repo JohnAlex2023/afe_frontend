@@ -1,6 +1,9 @@
 /**
  * Tab de Vista por Proveedor
- * Muestra responsables asignados a un proveedor seleccionado
+ * Muestra responsables asignados a un proveedor seleccionado (busca por NIT)
+ *
+ * @version 2.0 - Migrado a asignacion-nit
+ * @date 2025-10-19
  */
 import React, { useState } from 'react';
 import {
@@ -23,7 +26,7 @@ import {
 } from '@mui/material';
 import { useAppSelector } from '../../../app/hooks';
 import { selectProveedoresList } from '../proveedoresSlice';
-import { getResponsablesDeProveedor } from '../../../services/responsableProveedor.api';
+import { getAsignacionesNit } from '../../../services/asignacionNit.api';
 
 function PorProveedorTab() {
   const proveedores = useAppSelector(selectProveedoresList);
@@ -36,8 +39,39 @@ function PorProveedorTab() {
 
     setLoading(true);
     try {
-      const data = await getResponsablesDeProveedor(selectedProveedorId);
-      setViewData(data);
+      // Buscar proveedor seleccionado para obtener su NIT
+      const proveedor = proveedores.find((p) => p.id === selectedProveedorId);
+      if (!proveedor) {
+        console.error('Proveedor no encontrado');
+        setLoading(false);
+        return;
+      }
+
+      // Buscar asignaciones por NIT
+      const asignaciones = await getAsignacionesNit({
+        nit: proveedor.nit,
+        activo: true,
+      });
+
+      // Transformar respuesta al formato esperado por la vista
+      const transformedData = {
+        proveedor_id: proveedor.id,
+        proveedor: {
+          nit: proveedor.nit,
+          razon_social: proveedor.razon_social || proveedor.nombre,
+        },
+        responsables: asignaciones.map((asig) => ({
+          asignacion_id: asig.id,
+          responsable_id: asig.responsable_id,
+          usuario: asig.responsable?.usuario || '',
+          nombre: asig.responsable?.nombre || '',
+          email: asig.responsable?.email || '',
+          activo: asig.activo,
+        })),
+        total: asignaciones.length,
+      };
+
+      setViewData(transformedData);
     } catch (error: any) {
       console.error('Error al cargar datos:', error);
     } finally {

@@ -15,13 +15,14 @@ export interface Factura {
   responsable_id?: number;
   observaciones?: string;
   archivo_adjunto?: string;
-  // Campos de auditoría (para ADMIN)
+  // Campos de auditoría (para ADMIN) - Desde workflow
   nombre_responsable?: string;
-  aprobado_por?: string;
-  fecha_aprobacion?: string;
-  rechazado_por?: string;
-  fecha_rechazo?: string;
-  motivo_rechazo?: string;
+  aprobado_por_workflow?: string;
+  fecha_aprobacion_workflow?: string;
+  rechazado_por_workflow?: string;
+  fecha_rechazo_workflow?: string;
+  motivo_rechazo_workflow?: string;
+  tipo_aprobacion_workflow?: 'automatica' | 'manual' | 'masiva' | 'forzada';
   // Campos calculados
   accion_por?: string;
   fecha_accion?: string;

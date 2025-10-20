@@ -1,5 +1,21 @@
 /**
  * Servicios API para gestión de asignaciones Responsable-Proveedor
+ *
+ * ⚠️ DEPRECATED - Este archivo está obsoleto
+ *
+ * @deprecated Usar asignacionNit.api.ts en su lugar
+ * @see asignacionNit.api.ts
+ *
+ * Este servicio fue reemplazado por el sistema unificado de asignaciones NIT.
+ * El backend ya no tiene el endpoint /responsable-proveedor/
+ *
+ * Migración:
+ * - getAsignaciones() -> getAsignacionesNit()
+ * - createAsignacion() -> createAsignacionNit()
+ * - getProveedoresDeResponsable() -> getAsignacionesPorResponsable()
+ *
+ * Fecha de deprecación: 2025-10-19
+ * Eliminar después de: 2025-11-19 (30 días)
  */
 import apiClient from './api';
 

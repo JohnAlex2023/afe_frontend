@@ -1,4 +1,9 @@
-/** Tab de Asignaciones - CRUD completo */
+/**
+ * Tab de Asignaciones - CRUD completo
+ *
+ * @version 2.0 - Migrado a asignacion-nit
+ * @date 2025-10-19
+ */
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -33,9 +38,11 @@ import {
   selectAsignacionesLoading,
   selectProveedoresList,
 } from '../proveedoresSlice';
-import { getResponsables } from '../../../services/responsableProveedor.api';
+import {
+  getResponsables,
+  createAsignacionesNitBulk,
+} from '../../../services/asignacionNit.api';
 import { Responsable } from '../../../types/responsable.types';
-import { createAsignacionesBulk } from '../../../services/responsableProveedor.api';
 
 interface AsignacionFormData {
   responsable_id: number | null;
@@ -138,12 +145,26 @@ function AsignacionesTab() {
     setError(null);
 
     try {
-      const response = await createAsignacionesBulk({
-        responsable_id: bulkResponsableId,
-        proveedor_ids: bulkProveedores,
+      // Convertir proveedor_ids a NITs para el nuevo sistema
+      const nitsData = bulkProveedores.map((provId) => {
+        const prov = proveedores.find((p) => p.id === provId);
+        return {
+          nit: prov?.nit || '',
+          nombre_proveedor: prov?.nombre || '',
+          area: prov?.area || 'General',
+        };
       });
 
-      setSuccess(`${response.creadas} asignaciones creadas exitosamente`);
+      const response = await createAsignacionesNitBulk({
+        responsable_id: bulkResponsableId,
+        nits: nitsData,
+        permitir_aprobacion_automatica: true,
+        activo: true,
+      });
+
+      setSuccess(
+        `${response.creadas} asignaciones creadas, ${response.actualizadas} actualizadas`
+      );
       dispatch(fetchAsignaciones());
       setTimeout(() => {
         handleCloseBulkDialog();
