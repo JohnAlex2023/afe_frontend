@@ -247,19 +247,19 @@ function AsignacionesTab() {
                   <TableCell>{asignacion.id}</TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight={500}>
-                      {asignacion.responsable.nombre}
+                      {asignacion.responsable?.nombre || `ID: ${asignacion.responsable_id}`}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {asignacion.responsable.email}
+                      {asignacion.responsable?.email || '-'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight={500}>
-                      {asignacion.proveedor.nombre}
+                      {asignacion.nombre_proveedor}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip label={asignacion.proveedor.nit} size="small" />
+                    <Chip label={asignacion.nit} size="small" />
                   </TableCell>
                   <TableCell align="right">
                     <IconButton size="small" color="error" onClick={() => handleDelete(asignacion.id)}>
