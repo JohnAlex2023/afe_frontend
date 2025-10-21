@@ -66,7 +66,7 @@ function ApprovalDialog({ open, onClose, onConfirm, facturaNumero, workflow, loa
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth aria-modal="true" disableEnforceFocus>
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
           <CheckCircle sx={{ color: zentriaColors.verde.main }} />

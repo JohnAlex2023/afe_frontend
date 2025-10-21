@@ -60,7 +60,7 @@ const ConfirmDialog: React.FC<Props> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth aria-modal="true" disableEnforceFocus>
       <DialogContent sx={{ textAlign: 'center', pt: 4 }}>
         <Box sx={{ mb: 2 }}>{getIcon()}</Box>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>

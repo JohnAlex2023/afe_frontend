@@ -26,17 +26,16 @@ import {
 import {
   Close as CloseIcon,
   Add as AddIcon,
-  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useAppDispatch } from '../../../app/hooks';
 import { crearCuenta } from '../emailConfigSlice';
 
 // Validación con Zod
 const schema = z.object({
-  email: z.string().email('Email inválido').min(5, 'Email requerido'),
+  email: z.string().min(1, 'Email requerido').email('Email inválido'),
   nombre_descriptivo: z.string().optional(),
-  fetch_limit: z.number().min(1).max(1000).default(500),
-  fetch_days: z.number().min(1).max(365).default(90),
+  fetch_limit: z.number().min(1).max(1000),
+  fetch_days: z.number().min(1).max(365),
   organizacion: z.string().optional(),
 });
 
@@ -127,7 +126,7 @@ const CreateCuentaDialog: React.FC<Props> = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth aria-modal="true" disableEnforceFocus>
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
@@ -272,7 +271,7 @@ const CreateCuentaDialog: React.FC<Props> = ({ open, onClose, onSuccess }) => {
                   label="Agregar NIT"
                   value={nitInput}
                   onChange={(e) => setNitInput(e.target.value)}
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleAgregarNit();

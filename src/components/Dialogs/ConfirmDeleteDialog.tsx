@@ -44,6 +44,8 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      aria-modal="true"
+      disableEnforceFocus
       PaperProps={{
         sx: {
           borderRadius: 3,

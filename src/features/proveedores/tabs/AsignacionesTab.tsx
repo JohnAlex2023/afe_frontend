@@ -71,6 +71,7 @@ function AsignacionesTab() {
   const [hasPendingInput, setHasPendingInput] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [bulkDialogError, setBulkDialogError] = useState<string | null>(null); // Error específico del modal bulk
   const [submitting, setSubmitting] = useState(false);
   const [selectedAsignaciones, setSelectedAsignaciones] = useState<number[]>([]);
   const listboxRef = React.useRef<HTMLUListElement | null>(null);
@@ -104,17 +105,23 @@ function AsignacionesTab() {
   };
 
   const handleOpenBulkDialog = () => {
+    // Limpiar todos los estados al abrir el modal
     setBulkResponsableId(null);
     setBulkProveedores([]);
     setBulkNitsRechazados([]);
     setHasPendingInput(false);
-    setError(null);
-    setSuccess(null);
+    setBulkDialogError(null); // Limpiar error del modal
     setOpenBulkDialog(true);
   };
 
   const handleCloseBulkDialog = () => {
     setOpenBulkDialog(false);
+    // Limpiar estados al cerrar el modal
+    setBulkResponsableId(null);
+    setBulkProveedores([]);
+    setBulkNitsRechazados([]);
+    setHasPendingInput(false);
+    setBulkDialogError(null);
   };
 
   const handleSubmit = async () => {
@@ -203,7 +210,7 @@ function AsignacionesTab() {
 
         // Si no hay NITs válidos después de procesar, mostrar error
         if (nitsUnicos.length === 0) {
-          setError('Ninguno de los NITs ingresados está registrado como proveedor.');
+          setBulkDialogError('Ninguno de los NITs ingresados está registrado como proveedor.');
           return;
         }
 
@@ -215,17 +222,17 @@ function AsignacionesTab() {
 
     // VALIDACIONES
     if (!bulkResponsableId) {
-      setError('Debe seleccionar un responsable');
+      setBulkDialogError('Debe seleccionar un responsable');
       return;
     }
 
     if (bulkProveedores.length === 0) {
-      setError('Debe seleccionar o ingresar al menos un NIT válido');
+      setBulkDialogError('Debe seleccionar o ingresar al menos un NIT válido');
       return;
     }
 
     setSubmitting(true);
-    setError(null);
+    setBulkDialogError(null);
 
     try {
       // bulkProveedores ya contiene solo los NITs VÁLIDOS
@@ -267,9 +274,6 @@ function AsignacionesTab() {
       // Recargar asignaciones inmediatamente (todas, incluyendo inactivas)
       await dispatch(fetchAsignaciones({}));
 
-      // Cerrar el modal de asignación
-      handleCloseBulkDialog();
-
       // Construir mensaje según resultado
       let mensajeCompleto = '';
 
@@ -277,8 +281,8 @@ function AsignacionesTab() {
         mensajeCompleto += `✓ Se asignaron ${response.creadas} NIT(s) exitosamente.\n\n`;
       }
 
-      if (response.actualizadas > 0) {
-        mensajeCompleto += `↻ Se actualizaron ${response.actualizadas} asignación(es).\n\n`;
+      if (response.reactivadas > 0) {
+        mensajeCompleto += `↻ Se reactivaron ${response.reactivadas} asignación(es) previamente eliminada(s).\n\n`;
       }
 
       if (response.omitidas > 0) {
@@ -290,8 +294,11 @@ function AsignacionesTab() {
         mensajeCompleto += `✗ Los siguientes NITs NO fueron asignados porque no están registrados:\n\n${bulkNitsRechazados.join(', ')}\n\nPor favor, regístrelos primero en Gestión de Proveedores → Proveedores.`;
       }
 
+      // Cerrar el modal de asignación ANTES de mostrar mensajes
+      handleCloseBulkDialog();
+
       // Si hay mensajes de advertencia o NITs rechazados, mostrar modal
-      if (response.omitidas > 0 || bulkNitsRechazados.length > 0 || response.actualizadas > 0) {
+      if (response.omitidas > 0 || bulkNitsRechazados.length > 0 || response.reactivadas > 0) {
         setWarningMessage(mensajeCompleto.trim());
         setOpenWarningDialog(true);
       } else if (response.creadas > 0) {
@@ -504,7 +511,14 @@ function AsignacionesTab() {
       </TableContainer>
 
       {/* Dialog para crear asignación individual */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        aria-modal="true"
+        disableEnforceFocus
+      >
         <DialogTitle>Nueva Asignación</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
@@ -537,9 +551,21 @@ function AsignacionesTab() {
       </Dialog>
 
       {/* Dialog para asignación masiva */}
-      <Dialog open={openBulkDialog} onClose={handleCloseBulkDialog} maxWidth="md" fullWidth>
+      <Dialog
+        open={openBulkDialog}
+        onClose={handleCloseBulkDialog}
+        maxWidth="md"
+        fullWidth
+        aria-modal="true"
+        disableEnforceFocus
+      >
         <DialogTitle>Asignación Masiva de Proveedores</DialogTitle>
         <DialogContent>
+          {bulkDialogError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setBulkDialogError(null)}>
+              {bulkDialogError}
+            </Alert>
+          )}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
             <Autocomplete
               options={responsables}
@@ -586,11 +612,11 @@ function AsignacionesTab() {
                 setBulkNitsRechazados(nitsNoEncontrados);
 
                 if (nitsNoEncontrados.length > 0) {
-                  setError(
+                  setBulkDialogError(
                     `Los siguientes NITs no están registrados como proveedores: ${nitsNoEncontrados.join(', ')}. Se asignarán solo los NITs válidos.`
                   );
                 } else {
-                  setError(null);
+                  setBulkDialogError(null);
                 }
 
                 setBulkProveedores(nitsValidos);
@@ -760,11 +786,11 @@ function AsignacionesTab() {
 
                         // Mostrar alerta si hay NITs no registrados
                         if (nitsNoEncontrados.length > 0) {
-                          setError(
+                          setBulkDialogError(
                             `Los siguientes NITs no están registrados: ${nitsNoEncontrados.join(', ')}. Se asignarán solo los NITs válidos.`
                           );
                         } else {
-                          setError(null);
+                          setBulkDialogError(null);
                         }
 
                         // Limpiar el input y el estado
@@ -811,6 +837,8 @@ function AsignacionesTab() {
         onClose={() => setOpenWarningDialog(false)}
         maxWidth="sm"
         fullWidth
+        aria-modal="true"
+        disableEnforceFocus
         slotProps={{
           paper: {
             sx: {

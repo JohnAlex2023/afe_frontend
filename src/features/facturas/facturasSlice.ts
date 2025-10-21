@@ -37,10 +37,10 @@ export const fetchFacturasPendientes = createAsyncThunk(
       }
     });
 
-    // Filtrar solo las facturas que están en revisión
+    // Filtrar facturas que requieren revisión (pendientes + en_revision)
     const facturas = response.data.data || [];
     const facturasEnRevision = facturas.filter((f: any) =>
-      f.estado === 'en_revision'
+      f.estado === 'pendiente' || f.estado === 'en_revision'
     );
 
     // Transformar al formato que espera el componente

@@ -85,7 +85,7 @@ const AddNitDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess }) =
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth aria-modal="true" disableEnforceFocus>
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>

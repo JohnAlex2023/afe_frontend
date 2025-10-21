@@ -94,7 +94,7 @@ function RejectionDialog({ open, onClose, onConfirm, facturaNumero, workflow, lo
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth aria-modal="true" disableEnforceFocus>
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
           <Cancel sx={{ color: zentriaColors.naranja.main }} />

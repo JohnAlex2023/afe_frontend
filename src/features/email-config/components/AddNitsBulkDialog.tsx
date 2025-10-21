@@ -110,7 +110,7 @@ const AddNitsBulkDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess
   const nitsPreview = procesarNits(nitsTexto);
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth aria-modal="true" disableEnforceFocus>
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
