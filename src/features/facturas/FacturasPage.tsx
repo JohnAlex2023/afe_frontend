@@ -267,7 +267,8 @@ function FacturasPage() {
       const facturaId = selectedWorkflow.factura_id;
 
       // Usar el mismo servicio que el Dashboard - endpoint /facturas/{id}/aprobar
-      await facturasService.approveFactura(facturaId, user.usuario, observaciones);
+      const approverName = typeof user?.nombre === 'string' && user.nombre.trim() ? user.nombre : user?.usuario || '';
+      await facturasService.approveFactura(facturaId, approverName, observaciones);
 
       showNotification(
         `✅ Factura ${selectedWorkflow.factura?.numero_factura || selectedWorkflow.numero_factura} aprobada exitosamente`,
@@ -301,7 +302,8 @@ function FacturasPage() {
       const facturaId = selectedWorkflow.factura_id;
 
       // Usar el mismo servicio que el Dashboard - endpoint /facturas/{id}/rechazar
-      await facturasService.rejectFactura(facturaId, user.usuario, motivo, observaciones);
+      const rejectorName = typeof user?.nombre === 'string' && user.nombre.trim() ? user.nombre : user?.usuario || '';
+      await facturasService.rejectFactura(facturaId, rejectorName, motivo, observaciones);
 
       showNotification(
         `🚫 Factura ${selectedWorkflow.factura?.numero_factura || selectedWorkflow.numero_factura} rechazada`,

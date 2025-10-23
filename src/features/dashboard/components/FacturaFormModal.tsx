@@ -76,6 +76,7 @@ export const FacturaFormModal: React.FC<FacturaFormModalProps> = ({
       >
         <IconButton
           onClick={onClose}
+          aria-label="Cerrar formulario"
           sx={{
             position: 'absolute',
             right: 16,

@@ -124,28 +124,30 @@ const EmailConfigPage: React.FC = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            <Tooltip title="Refrescar datos" arrow>
-              <IconButton
-                onClick={handleRefresh}
-                disabled={loadingCuentas}
-                sx={{
-                  color: zentriaColors.violeta.main,
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    bgcolor: zentriaColors.violeta.main + '15',
-                    transform: loadingCuentas ? 'none' : 'rotate(180deg)',
-                  },
-                  '&.Mui-disabled': {
-                    color: zentriaColors.violeta.main + '60',
-                  }
-                }}
-              >
-                {loadingCuentas ? (
-                  <CircularProgress size={24} sx={{ color: zentriaColors.violeta.main }} />
-                ) : (
-                  <RefreshIcon />
-                )}
-              </IconButton>
+            <Tooltip title={loadingCuentas ? "Cargando datos..." : "Refrescar datos"} arrow>
+              <span>
+                <IconButton
+                  onClick={handleRefresh}
+                  disabled={loadingCuentas}
+                  sx={{
+                    color: zentriaColors.violeta.main,
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: zentriaColors.violeta.main + '15',
+                      transform: loadingCuentas ? 'none' : 'rotate(180deg)',
+                    },
+                    '&.Mui-disabled': {
+                      color: zentriaColors.violeta.main + '60',
+                    }
+                  }}
+                >
+                  {loadingCuentas ? (
+                    <CircularProgress size={24} sx={{ color: zentriaColors.violeta.main }} />
+                  ) : (
+                    <RefreshIcon />
+                  )}
+                </IconButton>
+              </span>
             </Tooltip>
             <Button
               variant="contained"

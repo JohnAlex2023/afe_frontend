@@ -172,7 +172,8 @@ function DashboardPage() {
 
     try {
       // IMPORTANTE: Enviar el nombre completo del usuario, no el username
-      await facturasService.approveFactura(selectedFacturaForAction.id, user?.nombre || user?.usuario || '', observaciones);
+      const approverName = typeof user?.nombre === 'string' && user.nombre.trim() ? user.nombre : user?.usuario || '';
+      await facturasService.approveFactura(selectedFacturaForAction.id, approverName, observaciones);
       setApprovalDialogOpen(false);
       setSelectedFacturaForAction(null);
 
@@ -192,7 +193,8 @@ function DashboardPage() {
 
     try {
       // IMPORTANTE: Enviar el nombre completo del usuario, no el username
-      await facturasService.rejectFactura(selectedFacturaForAction.id, user?.nombre || user?.usuario || '', motivo, detalle);
+      const rejectorName = typeof user?.nombre === 'string' && user.nombre.trim() ? user.nombre : user?.usuario || '';
+      await facturasService.rejectFactura(selectedFacturaForAction.id, rejectorName, motivo, detalle);
       setRejectionDialogOpen(false);
       setSelectedFacturaForAction(null);
 

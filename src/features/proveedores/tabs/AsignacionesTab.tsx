@@ -27,8 +27,9 @@ import {
   CircularProgress,
   Chip,
   Checkbox,
+  Stack,
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon, DeleteSweep as DeleteSweepIcon, Warning as WarningIcon, Close } from '@mui/icons-material';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import {
   fetchAsignaciones,
@@ -44,6 +45,7 @@ import {
   createAsignacionesNitBulk,
 } from '../../../services/asignacionNit.api';
 import { Responsable } from '../../../types/responsable.types';
+import { zentriaColors } from '../../../theme/colors';
 
 interface AsignacionFormData {
   responsable_id: number | null;
@@ -839,59 +841,152 @@ function AsignacionesTab() {
         fullWidth
         aria-modal="true"
         disableEnforceFocus
-        slotProps={{
-          paper: {
-            sx: {
-              borderTop: '4px solid',
-              borderColor: 'warning.main',
-            },
-          },
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+            overflow: 'hidden',
+          }
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'warning.main' }}>
-          <Box
-            component="span"
+        {/* Header con Gradiente Corporativo Naranja - Mejor contraste */}
+        <Box
+          sx={{
+            background: `linear-gradient(135deg, ${zentriaColors.naranja.main} 0%, ${zentriaColors.naranja.dark} 100%)`,
+            color: 'white',
+            p: 3,
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Stack direction="row" spacing={2} alignItems="center" flex={1}>
+            <Box
+              sx={{
+                width: 50,
+                height: 50,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              <WarningIcon sx={{ fontSize: 28, color: 'white' }} />
+            </Box>
+            <Box>
+              <Typography variant="h5" fontWeight={700} color="white">
+                Advertencia: NITs no registrados
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+                Se encontraron asignaciones no válidas
+              </Typography>
+            </Box>
+          </Stack>
+          <IconButton
+            onClick={() => setOpenWarningDialog(false)}
+            aria-label="Cerrar advertencia"
             sx={{
-              fontSize: '1.5rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              backgroundColor: 'warning.light',
-              color: 'warning.dark',
+              color: 'white',
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              },
             }}
           >
-            ⚠
-          </Box>
-          <Typography variant="h6" component="span" fontWeight={600}>
-            Advertencia: NITs no registrados
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
+            <Close />
+          </IconButton>
+        </Box>
+
+        <DialogContent sx={{ p: 3, backgroundColor: '#fafafa' }}>
+          {/* Alert de Información */}
+          <Alert
+            severity="warning"
+            icon={<WarningIcon sx={{ color: zentriaColors.naranja.main }} />}
+            sx={{
+              mb: 3,
+              backgroundColor: `${zentriaColors.naranja.light}15`,
+              border: `1.5px solid ${zentriaColors.naranja.light}`,
+              borderRadius: 2,
+              '& .MuiAlert-message': {
+                color: '#333',
+              },
+            }}
+          >
+            <Typography variant="body2" fontWeight={700} color="#333">
+              Algunos NITs no pudieron ser asignados porque no están registrados en el sistema.
+            </Typography>
+          </Alert>
+
+          {/* Contenido del Mensaje */}
           <Typography
-            variant="body1"
+            variant="body2"
             sx={{
               whiteSpace: 'pre-line',
               lineHeight: 1.8,
-              color: 'text.primary',
+              color: '#222',
+              backgroundColor: 'white',
+              p: 2.5,
+              borderRadius: 2,
+              border: `1px solid ${zentriaColors.cinza}`,
+              mb: 2,
+              fontWeight: 500,
             }}
           >
             {warningMessage}
           </Typography>
+
+          {/* Instrucciones */}
+          <Alert
+            severity="info"
+            sx={{
+              backgroundColor: `${zentriaColors.verde.light}15`,
+              border: `1.5px solid ${zentriaColors.verde.light}`,
+              borderRadius: 2,
+              '& .MuiAlert-message': {
+                color: '#222',
+              },
+            }}
+          >
+            <Typography variant="body2" color="#222" fontWeight={600}>
+              <strong>Solución:</strong> Registra estos NITs primero en la sección de <strong>Gestión de Proveedores → Proveedores</strong> antes de asignarlos.
+            </Typography>
+          </Alert>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+
+        {/* Footer de Acciones */}
+        <Box
+          sx={{
+            backgroundColor: '#f5f5f5',
+            p: 3,
+            borderTop: `1px solid ${zentriaColors.cinza}`,
+            display: 'flex',
+            gap: 2,
+            justifyContent: 'flex-end',
+          }}
+        >
           <Button
             onClick={() => setOpenWarningDialog(false)}
             variant="contained"
-            color="primary"
-            fullWidth
             size="large"
+            sx={{
+              minWidth: 160,
+              background: `linear-gradient(135deg, ${zentriaColors.naranja.main} 0%, ${zentriaColors.naranja.dark} 100%)`,
+              color: 'white',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              boxShadow: `0 4px 15px ${zentriaColors.naranja.main}40`,
+              '&:hover': {
+                boxShadow: `0 6px 20px ${zentriaColors.naranja.main}60`,
+              },
+            }}
           >
             Entendido
           </Button>
-        </DialogActions>
+        </Box>
       </Dialog>
     </Box>
   );

@@ -147,6 +147,7 @@ function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: Fact
       >
         <IconButton
           onClick={onClose}
+          aria-label="Cerrar detalles de factura"
           sx={{
             position: 'absolute',
             right: 16,
