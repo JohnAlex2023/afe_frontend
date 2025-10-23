@@ -28,22 +28,26 @@ export interface Factura {
   fecha_accion?: string;
 }
 
+/**
+ * Estados de factura (refactorizado - eliminado 'pendiente')
+ */
 export type EstadoFactura =
-  | 'pendiente'
   | 'en_revision'
   | 'aprobada'
   | 'aprobado'
   | 'aprobada_auto'
   | 'rechazada'
-  | 'rechazado';
+  | 'rechazado'
+  | 'pagada';
 
 export interface DashboardStats {
   total: number;
-  pendientes: number;
+  pendientes: number;  // Ahora mapea a 'en_revision'
   en_revision: number;
   aprobadas: number;
   aprobadas_auto: number;
   rechazadas: number;
+  pagadas?: number;
 }
 
 export interface FacturaFormData {

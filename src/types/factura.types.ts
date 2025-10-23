@@ -146,12 +146,21 @@ export interface ProveedorMetric {
   pendientes: number;
 }
 
+/**
+ * Estados de factura (refactorizado - eliminado 'pendiente')
+ *
+ * - en_revision: Factura requiere revisión manual (estado único de espera)
+ * - aprobada: Factura aprobada manualmente por usuario
+ * - aprobada_auto: Factura aprobada automáticamente por el sistema
+ * - rechazada: Factura rechazada por usuario
+ * - pagada: Factura procesada para pago
+ */
 export type EstadoFactura =
-  | 'pendiente'
   | 'en_revision'
   | 'aprobada'
   | 'rechazada'
-  | 'aprobada_auto';
+  | 'aprobada_auto'
+  | 'pagada';
 
 export type EstadoWorkflow =
   | 'recibida'

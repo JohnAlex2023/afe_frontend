@@ -195,16 +195,25 @@ function FacturasPage() {
     setExportMenuAnchor(null);
   };
 
-  const getEstadoColor = (estado: string) => {
+  // Colores sincronizados con el sistema de estados
+  // - Verde (success): Aprobadas manualmente
+  // - Cyan (info): Aprobadas automáticamente
+  // - Amarillo (warning): En revisión/pendiente
+  // - Naranja (error): Rechazadas
+  const getEstadoColor = (estado: string): 'success' | 'info' | 'error' | 'warning' | 'default' => {
     switch (estado) {
       case 'aprobada_auto':
+        return 'info';        // Cyan - Aprobado automático
       case 'aprobada_manual':
-        return 'success';
+      case 'aprobada':
+      case 'aprobado':
+        return 'success';     // Verde - Aprobado manual
       case 'rechazada':
-        return 'error';
+      case 'rechazado':
+        return 'error';       // Naranja - Rechazado
       case 'pendiente_revision':
       case 'en_revision':
-        return 'warning';
+        return 'warning';     // Amarillo - En revisión
       default:
         return 'default';
     }

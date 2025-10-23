@@ -31,9 +31,10 @@ const themeOptions = {
       100: '#B3EDE5',
     },
     warning: {
-      main: zentriaColors.amarillo.main,
-      light: zentriaColors.amarillo.light,
-      dark: zentriaColors.amarillo.dark,
+      main: '#f59e0b',           // Amber 500 - más visible y profesional que el amarillo pastel
+      light: '#fbbf24',          // Amber 400
+      dark: '#d97706',           // Amber 600
+      contrastText: '#000000',   // Texto negro para mejor contraste
     },
     error: {
       main: zentriaColors.naranja.main,

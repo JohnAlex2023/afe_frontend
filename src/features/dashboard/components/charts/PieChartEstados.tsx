@@ -20,12 +20,17 @@ interface PieChartEstadosProps {
   loading?: boolean;
 }
 
+// Paleta de colores sincronizada con el sistema
+// - Amarillo (Amber): En revisión/pendiente (requiere atención)
+// - Verde: Aprobadas manualmente (éxito confirmado)
+// - Verde claro (Cyan): Aprobadas automáticamente (éxito automatizado)
+// - Naranja: Rechazadas (error/negativo)
 const COLORS = {
-  pendientes: zentriaColors.amarillo.main,
-  en_revision: '#42A5F5',
-  aprobadas: zentriaColors.verde.main,
-  aprobadas_auto: zentriaColors.verde.light,
-  rechazadas: zentriaColors.naranja.main,
+  pendientes: '#f59e0b',                  // Amber 500 - más visible para estados pendientes
+  en_revision: '#f59e0b',                 // Amber 500 - consistente con pendientes
+  aprobadas: zentriaColors.verde.main,    // #00B094 - Verde corporativo para aprobados manuales
+  aprobadas_auto: '#45E3C9',              // Verde claro - diferenciado de aprobadas manuales
+  rechazadas: zentriaColors.naranja.main, // #FF5F3F - Naranja corporativo para rechazos
 };
 
 const LABELS = {

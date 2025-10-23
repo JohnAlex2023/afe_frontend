@@ -749,8 +749,8 @@ function AsignacionesTab() {
                 <TextField
                   {...params}
                   label="Seleccionar NITs"
-                  placeholder="Busque, seleccione o pegue NITs separados por coma"
-                  helperText="Puede seleccionar de la lista o pegar múltiples NITs separados por comas (Ej: 900123456-7, 800111222-3, 900333444-5)"
+                  placeholder="Busque o digite NITs separados por coma"
+                  helperText="Puede seleccionar de la lista o digitar múltiples NITs separados por comas (Ej: 900123456, 800111222, 900333444)"
                   onChange={(e) => {
                     // Detectar si hay texto con comas en el input
                     const inputValue = (e.target as HTMLInputElement).value;
