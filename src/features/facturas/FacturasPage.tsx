@@ -557,7 +557,7 @@ function FacturasPage() {
                     Similitud
                   </Typography>
                 </TableCell>
-                {user?.rol === 'admin' && (
+                {(user?.rol === 'admin' || user?.rol === 'responsable') && (
                   <TableCell>
                     <Typography variant="subtitle2" fontWeight={700} color="text.primary">
                       Responsable
@@ -579,7 +579,7 @@ function FacturasPage() {
             <TableBody>
               {filteredFacturas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={user?.rol === 'admin' ? 9 : 8} align="center">
+                  <TableCell colSpan={(user?.rol === 'admin' || user?.rol === 'responsable') ? 9 : 8} align="center">
                     <Box py={6}>
                       <Typography variant="h6" color="text.secondary" gutterBottom>
                         No se encontraron facturas
@@ -678,7 +678,7 @@ function FacturasPage() {
                         <Typography variant="body2" color="text.disabled">-</Typography>
                       )}
                     </TableCell>
-                    {user?.rol === 'admin' && (
+                    {(user?.rol === 'admin' || user?.rol === 'responsable') && (
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
                           <Box

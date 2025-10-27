@@ -212,7 +212,7 @@ function DashboardPage() {
   const handleExport = () => {
     const url = facturasService.getExportUrl(
       filterEstado,
-      user?.rol === 'admin' && vistaFacturas === 'asignadas'
+      (user?.rol === 'admin' || user?.rol === 'responsable') && vistaFacturas === 'asignadas'
     );
     window.location.href = apiClient.defaults.baseURL + url;
   };
@@ -300,7 +300,7 @@ function DashboardPage() {
           >
             {loading ? 'Actualizando...' : 'Actualizar'}
           </Button>
-          {user?.rol === 'admin' && (
+          {(user?.rol === 'admin' || user?.rol === 'responsable') && (
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -350,7 +350,7 @@ function DashboardPage() {
         totalTodasFacturas={totalTodasFacturas}
         totalAsignadas={totalAsignadas}
         onExport={handleExport}
-        isAdmin={user?.rol === 'admin'}
+        isAdmin={user?.rol === 'admin' || user?.rol === 'responsable'}
       />
 
       {/* Error Messages */}
@@ -375,7 +375,7 @@ function DashboardPage() {
         onRowsPerPageChange={handleRowsPerPageChange}
         onOpenDialog={openDialogWith}
         onMenuClick={handleMenuClick}
-        isAdmin={user?.rol === 'admin'}
+        isAdmin={user?.rol === 'admin' || user?.rol === 'responsable'}
       />
 
       {/* Actions Menu */}

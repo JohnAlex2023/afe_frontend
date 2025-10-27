@@ -236,23 +236,25 @@ function ResponsablesPage() {
                       color={responsable?.activo ? 'success' : 'default'}
                     />
                   </TableCell>
-                <TableCell align="center">
-                  <IconButton
-                    size="small"
-                    onClick={() => handleOpenDialog(responsable)}
-                    sx={{ color: zentriaColors.naranja.main }}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDelete(responsable.id)}
-                    sx={{ color: 'error.main' }}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
+                  <TableCell align="center">
+                    <IconButton
+                      size="small"
+                      onClick={() => handleOpenDialog(responsable)}
+                      sx={{ color: zentriaColors.naranja.main }}
+                      title="Editar responsable"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDelete(responsable.id)}
+                      sx={{ color: 'error.main' }}
+                      title="Eliminar responsable"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
               <TableRow>
