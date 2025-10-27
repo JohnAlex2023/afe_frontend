@@ -586,7 +586,7 @@ function AsignacionesTab() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
             <Autocomplete
               options={responsables}
-              getOptionLabel={(option) => `${option.nombre} (${option.email})`}
+              getOptionLabel={(option) => `${option.nombre} (${option.usuario})`}
               value={responsables.find((r) => r.id === formData.responsable_id) || null}
               onChange={(_, newValue) =>
                 setFormData({ ...formData, responsable_id: newValue?.id || null })
@@ -631,7 +631,7 @@ function AsignacionesTab() {
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
             <Autocomplete
               options={responsables}
-              getOptionLabel={(option) => `${option.nombre} (${option.email})`}
+              getOptionLabel={(option) => `${option.nombre} (${option.usuario})`}
               value={responsables.find((r) => r.id === bulkResponsableId) || null}
               onChange={(_, newValue) => setBulkResponsableId(newValue?.id || null)}
               renderInput={(params) => <TextField {...params} label="Responsable" required />}
