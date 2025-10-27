@@ -5,6 +5,7 @@
  * @date 2025-10-19
  */
 import React, { useState, useEffect } from 'react';
+import { normalizarNit, validarNit } from '../../../utils/nit';
 import {
   Box,
   Typography,
@@ -62,6 +63,7 @@ function AsignacionesTab() {
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
   const [openWarningDialog, setOpenWarningDialog] = useState(false); // Modal de advertencia
   const [warningMessage, setWarningMessage] = useState<string>(''); // Mensaje de advertencia
+  const [duplicateNit, setDuplicateNit] = useState<string | null>(null); // NIT duplicado para mostrar
   const [responsables, setResponsables] = useState<Responsable[]>([]);
   const [formData, setFormData] = useState<AsignacionFormData>({
     responsable_id: null,
@@ -81,17 +83,23 @@ function AsignacionesTab() {
 
   useEffect(() => {
     // Cargar TODAS las asignaciones (activas e inactivas) para ver asignaciones huérfanas
-    dispatch(fetchAsignaciones({}));
-    dispatch(fetchProveedores({}));
-    loadResponsables();
+    dispatch(fetchAsignaciones({ skip: 0, limit: 1000 }));
+    dispatch(fetchProveedores({ skip: 0, limit: 1000 }));
   }, [dispatch]);
+
+  // Cargar responsables solo una vez al montar el componente
+  useEffect(() => {
+    loadResponsables();
+  }, []);
 
   const loadResponsables = async () => {
     try {
       const data = await getResponsables({ limit: 1000 });
+      console.log('Responsables cargados:', data);
       setResponsables(data);
     } catch (err) {
-      // Error cargando responsables
+      console.error('Error cargando responsables:', err);
+      setError(`Error al cargar responsables: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -162,9 +170,33 @@ function AsignacionesTab() {
         setSuccess(null);
       }, 1500);
     } catch (err: any) {
-      // Manejar errores específicos del backend
-      const errorMessage = err.response?.data?.detail || err.message || 'Error al crear la asignación';
-      setError(errorMessage);
+      // Manejar errores específicos del backend de manera empresarial
+      // Con .unwrap(), el error lanzado puede ser un string (del rejectWithValue) o un Error object
+      const detail = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
+
+      // Detectar si el error es por NIT duplicado/ya asignado
+      // Patrones de error que indican duplicado:
+      // - "ya tiene asignado el NIT"
+      // - "ya existe"
+      // - "activa"
+      const isDuplicateError =
+        detail.toLowerCase().includes('ya') &&
+        (detail.toLowerCase().includes('asignado') ||
+         detail.toLowerCase().includes('existe') ||
+         detail.toLowerCase().includes('activa'));
+
+      if (isDuplicateError) {
+        // Mostrar advertencia elegante para duplicados
+        const nitMatch = detail.match(/(\d{1,9}-\d)/);
+        const nitDisplay = nitMatch ? nitMatch[1] : '';
+
+        setDuplicateNit(nitDisplay);
+        setWarningMessage('NIT ya registrado');
+        setOpenWarningDialog(true);
+      } else {
+        // Otros errores se muestran como error
+        setError(detail || 'Error al crear la asignación');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -186,14 +218,24 @@ function AsignacionesTab() {
           .map((nit) => nit.trim())
           .filter((nit) => nit.length > 0);
 
-        // Validar NITs
+        // Validar y normalizar NITs
         const nitsNoEncontrados: string[] = [];
-        const nitsValidos = nits.filter((nit) => {
-          const existe = proveedores.some((p) => p.nit === nit);
-          if (!existe) {
-            nitsNoEncontrados.push(nit);
+        const nitsValidos = nits.filter((nitInput) => {
+          try {
+            // Normalizar el NIT ingresado (calcula DV automáticamente)
+            const nitNormalizado = normalizarNit(nitInput);
+
+            // Buscar en proveedores con el NIT normalizado
+            const existe = proveedores.some((p) => p.nit === nitNormalizado);
+            if (!existe) {
+              nitsNoEncontrados.push(nitInput);
+            }
+            return existe ? nitNormalizado : false;
+          } catch (error) {
+            // Si hay error al normalizar, agregar a rechazados
+            nitsNoEncontrados.push(nitInput);
+            return false;
           }
-          return existe;
         });
 
         // Agregar a los NITs existentes (sin duplicados)
@@ -312,10 +354,28 @@ function AsignacionesTab() {
         setError('No se pudo realizar ninguna asignación. Verifique los datos.');
       }
     } catch (err: any) {
-      console.error('Error al crear asignaciones:', err);
-      // Manejar errores específicos del backend
-      const errorMessage = err.response?.data?.detail || err.message || 'Error al crear asignaciones masivas';
-      setError(errorMessage);
+      // Manejar errores específicos del backend de manera empresarial
+      // El error puede venir como string (del rejectWithValue) o como Error object
+      const detail = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
+
+      // Detectar si el error es por NITs duplicados/ya asignados
+      const isDuplicateError =
+        detail.toLowerCase().includes('ya') &&
+        (detail.toLowerCase().includes('asignado') ||
+         detail.toLowerCase().includes('existe') ||
+         detail.toLowerCase().includes('activa'));
+
+      if (isDuplicateError) {
+        // Extraer NITs del mensaje si es posible
+        const nitsMatch = detail.match(/(\d{1,9}-\d)/g);
+        const nitsDisplay = nitsMatch ? nitsMatch.join(', ') : '';
+
+        setDuplicateNit(nitsDisplay);
+        setWarningMessage('NITs ya registrados');
+        setOpenWarningDialog(true);
+      } else {
+        setError(detail || 'Error al crear asignaciones masivas');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -535,7 +595,7 @@ function AsignacionesTab() {
             />
             <Autocomplete
               options={proveedores}
-              getOptionLabel={(option) => `${option.nombre} - ${option.nit}`}
+              getOptionLabel={(option) => `${option.razon_social} - ${option.nit}`}
               value={proveedores.find((p) => p.id === formData.proveedor_id) || null}
               onChange={(_, newValue) =>
                 setFormData({ ...formData, proveedor_id: newValue?.id || null })
@@ -583,40 +643,74 @@ function AsignacionesTab() {
               disableCloseOnSelect
               disableListWrap
               options={proveedores.map((p) => p.nit)}
+              getOptionLabel={(option) => option}
               value={bulkProveedores}
               onChange={(_, newValue) => {
                 // Procesar NITs (pueden venir pegados con comas o seleccionados)
-                const nitsToProcess = newValue.flatMap((item) => {
+                const nitsToProcess = newValue.flatMap((nit) => {
                   // Si contiene comas, separar múltiples NITs
-                  if (item.includes(',')) {
-                    return item
+                  if (nit.includes(',')) {
+                    return nit
                       .split(',')
-                      .map((nit) => nit.trim())
-                      .filter((nit) => nit.length > 0);
+                      .map((n) => n.trim())
+                      .filter((n) => n.length > 0);
                   }
-                  return [item.trim()];
+                  return [nit.trim()];
                 });
 
                 // Eliminar duplicados
                 const nitsUnicos = [...new Set(nitsToProcess)];
 
-                // Validar cada NIT contra proveedores registrados
+                // Validar y normalizar cada NIT contra proveedores registrados
                 const nitsNoEncontrados: string[] = [];
-                const nitsValidos = nitsUnicos.filter((nit) => {
-                  const existe = proveedores.some((p) => p.nit === nit);
-                  if (!existe) {
-                    nitsNoEncontrados.push(nit);
+                const nitsDuplicados: string[] = [];
+                const nitsValidos = nitsUnicos.filter((nitInput) => {
+                  try {
+                    // Normalizar el NIT ingresado (calcula DV automáticamente)
+                    const nitNormalizado = normalizarNit(nitInput);
+
+                    // Verificar si el NIT ya está asignado a este responsable
+                    if (bulkResponsableId) {
+                      const yaAsignado = asignaciones.some(
+                        (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
+                      );
+                      if (yaAsignado) {
+                        nitsDuplicados.push(nitNormalizado);
+                        return false;
+                      }
+                    }
+
+                    // Buscar en proveedores con el NIT normalizado
+                    const existe = proveedores.some((p) => p.nit === nitNormalizado);
+                    if (!existe) {
+                      nitsNoEncontrados.push(nitInput);
+                    }
+                    return existe ? nitNormalizado : false;
+                  } catch (error) {
+                    // Si hay error al normalizar, agregar a rechazados
+                    nitsNoEncontrados.push(nitInput);
+                    return false;
                   }
-                  return existe;
                 });
 
                 // Guardar NITs rechazados en el estado para mostrarlos después
-                setBulkNitsRechazados(nitsNoEncontrados);
+                setBulkNitsRechazados([...nitsNoEncontrados, ...nitsDuplicados]);
 
+                // Construir mensaje de error
+                const mensajesParte = [];
                 if (nitsNoEncontrados.length > 0) {
-                  setBulkDialogError(
-                    `Los siguientes NITs no están registrados como proveedores: ${nitsNoEncontrados.join(', ')}. Se asignarán solo los NITs válidos.`
+                  mensajesParte.push(
+                    `Los siguientes NITs no están registrados como proveedores: ${nitsNoEncontrados.join(', ')}`
                   );
+                }
+                if (nitsDuplicados.length > 0) {
+                  mensajesParte.push(
+                    `Los siguientes NITs ya están asignados a este responsable: ${nitsDuplicados.join(', ')}`
+                  );
+                }
+
+                if (mensajesParte.length > 0) {
+                  setBulkDialogError(mensajesParte.join('. '));
                 } else {
                   setBulkDialogError(null);
                 }
@@ -642,13 +736,15 @@ function AsignacionesTab() {
                 })
               }
               renderOption={(props, option, { selected }) => {
-                const proveedor = proveedores.find((p) => p.nit === option);
+                // option es siempre un string (NIT)
+                const nit = option;
+                const proveedor = proveedores.find((p) => p.nit === nit);
                 const { onClick, ...otherProps } = props;
 
                 return (
                   <li
                     {...otherProps}
-                    key={option}
+                    key={nit}
                     onClick={(e) => {
                       // Prevenir el scroll automático al inicio
                       e.preventDefault();
@@ -665,7 +761,7 @@ function AsignacionesTab() {
                     />
                     <Box sx={{ flexGrow: 1 }}>
                       <Typography variant="body2" fontWeight={500}>
-                        {option}
+                        {nit}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {proveedor?.razon_social || 'Sin razón social'}
@@ -751,6 +847,9 @@ function AsignacionesTab() {
                   label="Seleccionar NITs"
                   placeholder="Busque o digite NITs separados por coma"
                   helperText="Puede seleccionar de la lista o digitar múltiples NITs separados por comas (Ej: 900123456, 800111222, 900333444)"
+                  InputProps={{
+                    ...params.InputProps,
+                  }}
                   onChange={(e) => {
                     // Detectar si hay texto con comas en el input
                     const inputValue = (e.target as HTMLInputElement).value;
@@ -768,14 +867,36 @@ function AsignacionesTab() {
                           .map((nit) => nit.trim())
                           .filter((nit) => nit.length > 0);
 
-                        // Validar NITs
+                        // Validar y normalizar NITs
                         const nitsNoEncontrados: string[] = [];
-                        const nitsValidos = nits.filter((nit) => {
-                          const existe = proveedores.some((p) => p.nit === nit);
-                          if (!existe) {
-                            nitsNoEncontrados.push(nit);
+                        const nitsDuplicados: string[] = [];
+                        const nitsValidos = nits.filter((nitInput) => {
+                          try {
+                            // Normalizar el NIT ingresado (calcula DV automáticamente)
+                            const nitNormalizado = normalizarNit(nitInput);
+
+                            // Verificar si el NIT ya está asignado a este responsable
+                            if (bulkResponsableId) {
+                              const yaAsignado = asignaciones.some(
+                                (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
+                              );
+                              if (yaAsignado) {
+                                nitsDuplicados.push(nitNormalizado);
+                                return false;
+                              }
+                            }
+
+                            // Buscar en proveedores con el NIT normalizado
+                            const existe = proveedores.some((p) => p.nit === nitNormalizado);
+                            if (!existe) {
+                              nitsNoEncontrados.push(nitInput);
+                            }
+                            return existe ? nitNormalizado : false;
+                          } catch (error) {
+                            // Si hay error al normalizar, agregar a rechazados
+                            nitsNoEncontrados.push(nitInput);
+                            return false;
                           }
-                          return existe;
                         });
 
                         // Agregar a los NITs existentes (sin duplicados)
@@ -783,14 +904,24 @@ function AsignacionesTab() {
                         setBulkProveedores(nitsUnicos);
 
                         // Guardar NITs rechazados (acumular con los existentes)
-                        const rechazadosUnicos = [...new Set([...bulkNitsRechazados, ...nitsNoEncontrados])];
+                        const rechazadosUnicos = [...new Set([...bulkNitsRechazados, ...nitsNoEncontrados, ...nitsDuplicados])];
                         setBulkNitsRechazados(rechazadosUnicos);
 
-                        // Mostrar alerta si hay NITs no registrados
+                        // Construir mensaje de error
+                        const mensajesParte = [];
                         if (nitsNoEncontrados.length > 0) {
-                          setBulkDialogError(
-                            `Los siguientes NITs no están registrados: ${nitsNoEncontrados.join(', ')}. Se asignarán solo los NITs válidos.`
+                          mensajesParte.push(
+                            `Los siguientes NITs no están registrados: ${nitsNoEncontrados.join(', ')}`
                           );
+                        }
+                        if (nitsDuplicados.length > 0) {
+                          mensajesParte.push(
+                            `Los siguientes NITs ya están asignados a este responsable: ${nitsDuplicados.join(', ')}`
+                          );
+                        }
+
+                        if (mensajesParte.length > 0) {
+                          setBulkDialogError(mensajesParte.join('. '));
                         } else {
                           setBulkDialogError(null);
                         }
@@ -878,15 +1009,19 @@ function AsignacionesTab() {
             </Box>
             <Box>
               <Typography variant="h5" fontWeight={700} color="white">
-                Advertencia: NITs no registrados
+                {warningMessage.includes('NITs') ? 'NITs Ya Registrados' : 'NIT Ya Registrado'}
               </Typography>
               <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-                Se encontraron asignaciones no válidas
+                Esta asignación ya existe
               </Typography>
             </Box>
           </Stack>
           <IconButton
-            onClick={() => setOpenWarningDialog(false)}
+            onClick={() => {
+              setOpenWarningDialog(false);
+              setDuplicateNit(null);
+              setWarningMessage('');
+            }}
             aria-label="Cerrar advertencia"
             sx={{
               color: 'white',
@@ -900,58 +1035,55 @@ function AsignacionesTab() {
           </IconButton>
         </Box>
 
-        <DialogContent sx={{ p: 3, backgroundColor: '#fafafa' }}>
-          {/* Alert de Información */}
-          <Alert
-            severity="warning"
-            icon={<WarningIcon sx={{ color: zentriaColors.naranja.main }} />}
-            sx={{
-              mb: 3,
-              backgroundColor: `${zentriaColors.naranja.light}15`,
-              border: `1.5px solid ${zentriaColors.naranja.light}`,
-              borderRadius: 2,
-              '& .MuiAlert-message': {
-                color: '#333',
-              },
-            }}
-          >
-            <Typography variant="body2" fontWeight={700} color="#333">
-              Algunos NITs no pudieron ser asignados porque no están registrados en el sistema.
-            </Typography>
-          </Alert>
+        <DialogContent sx={{ p: 4, backgroundColor: '#fafafa', textAlign: 'center' }}>
+          {/* NIT Duplicado - Mostrar de forma clara y profesional */}
+          {duplicateNit && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ color: '#666', mb: 1 }}>
+                NIT ya registrado:
+              </Typography>
+              <Box
+                sx={{
+                  backgroundColor: 'white',
+                  border: `2px solid ${zentriaColors.naranja.main}`,
+                  borderRadius: 2,
+                  p: 2.5,
+                  display: 'inline-block',
+                  minWidth: 200,
+                }}
+              >
+                <Typography
+                  variant="h5"
+                  sx={{
+                    fontWeight: 700,
+                    color: zentriaColors.naranja.main,
+                    fontFamily: 'monospace',
+                    letterSpacing: 1,
+                  }}
+                >
+                  {duplicateNit}
+                </Typography>
+              </Box>
+            </Box>
+          )}
 
-          {/* Contenido del Mensaje */}
-          <Typography
-            variant="body2"
-            sx={{
-              whiteSpace: 'pre-line',
-              lineHeight: 1.8,
-              color: '#222',
-              backgroundColor: 'white',
-              p: 2.5,
-              borderRadius: 2,
-              border: `1px solid ${zentriaColors.cinza}`,
-              mb: 2,
-              fontWeight: 500,
-            }}
-          >
-            {warningMessage}
-          </Typography>
-
-          {/* Instrucciones */}
+          {/* Mensaje descriptivo */}
           <Alert
             severity="info"
             sx={{
               backgroundColor: `${zentriaColors.verde.light}15`,
               border: `1.5px solid ${zentriaColors.verde.light}`,
               borderRadius: 2,
+              textAlign: 'left',
               '& .MuiAlert-message': {
                 color: '#222',
               },
             }}
           >
-            <Typography variant="body2" color="#222" fontWeight={600}>
-              <strong>Solución:</strong> Registra estos NITs primero en la sección de <strong>Gestión de Proveedores → Proveedores</strong> antes de asignarlos.
+            <Typography variant="body2" color="#222">
+              {warningMessage.includes('NITs')
+                ? 'Estos NITs ya están asignados a este responsable. Selecciona otros NITs para continuar.'
+                : 'Este NIT ya está asignado a este responsable. Selecciona otro NIT para continuar.'}
             </Typography>
           </Alert>
         </DialogContent>
@@ -968,7 +1100,11 @@ function AsignacionesTab() {
           }}
         >
           <Button
-            onClick={() => setOpenWarningDialog(false)}
+            onClick={() => {
+              setOpenWarningDialog(false);
+              setDuplicateNit(null);
+              setWarningMessage('');
+            }}
             variant="contained"
             size="large"
             sx={{
