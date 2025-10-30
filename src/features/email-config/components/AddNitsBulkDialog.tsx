@@ -1,9 +1,14 @@
 /**
  * Dialog para Agregar Múltiples NITs (Bulk)
- * Permite pegar lista de NITs separados por comas, espacios o saltos de línea
+ *
+ * Características:
+ * - Validación en tiempo real de múltiples NITs
+ * - Muestra NITs normalizados (XXXXXXXXX-D)
+ * - Acepta NITs separados por comas, espacios o saltos de línea
+ * - Indicadores visuales de validez de cada NIT
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -30,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useAppDispatch } from '../../../app/hooks';
 import { crearNitsBulk } from '../emailConfigSlice';
+import nitValidationService, { ValidationResult } from '../../../services/nitValidation.service';
 
 interface Props {
   open: boolean;
@@ -44,11 +50,14 @@ const AddNitsBulkDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess
   const [nitsTexto, setNitsTexto] = useState('');
   const [resultado, setResultado] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [validatingNits, setValidatingNits] = useState(false);
+  const [nitsValidation, setNitsValidation] = useState<Map<string, ValidationResult>>(new Map());
 
   const handleClose = () => {
     setNitsTexto('');
     setResultado(null);
     setError(null);
+    setNitsValidation(new Map());
     onClose();
   };
 
@@ -59,6 +68,39 @@ const AddNitsBulkDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess
       .map((nit) => nit.trim())
       .filter((nit) => nit.length > 0);
   };
+
+  // Validar NITs cuando cambia el texto
+  useMemo(() => {
+    const nitsArray = procesarNits(nitsTexto);
+
+    if (nitsArray.length === 0) {
+      setNitsValidation(new Map());
+      return;
+    }
+
+    const validateAllNits = async () => {
+      setValidatingNits(true);
+      try {
+        const validationResults = await nitValidationService.validateMultipleNits(nitsArray);
+        const validationMap = new Map<string, ValidationResult>();
+
+        nitsArray.forEach((nit, index) => {
+          validationMap.set(nit, validationResults[index]);
+        });
+
+        setNitsValidation(validationMap);
+      } catch (err) {
+        console.error('Error validating NITs:', err);
+        setNitsValidation(new Map());
+      } finally {
+        setValidatingNits(false);
+      }
+    };
+
+    // Debounce: esperar 800ms antes de validar
+    const timer = setTimeout(validateAllNits, 800);
+    return () => clearTimeout(timer);
+  }, [nitsTexto]);
 
   const handleAgregar = async () => {
     setLoading(true);
@@ -74,20 +116,28 @@ const AddNitsBulkDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess
         return;
       }
 
-      // Validar formato de NITs
-      const nitsInvalidos = nitsArray.filter((nit) => !/^\d{5,20}$/.test(nit));
-      if (nitsInvalidos.length > 0) {
+      // Validar que todos los NITs sean válidos
+      const invalidNits = Array.from(nitsValidation.entries()).filter(
+        ([_, validation]) => !validation.isValid
+      );
+
+      if (invalidNits.length > 0) {
         setError(
-          `NITs inválidos encontrados: ${nitsInvalidos.join(', ')}. Solo se permiten números de 5-20 dígitos.`
+          `${invalidNits.length} NIT(s) inválido(s). Por favor, revisa el formato de todos los NITs.`
         );
         setLoading(false);
         return;
       }
 
+      // Usar NITs normalizados
+      const nitsNormalizados = nitsArray.map(
+        (nit) => nitsValidation.get(nit)?.normalizedNit || nit
+      );
+
       const result = await dispatch(
         crearNitsBulk({
           cuenta_correo_id: cuentaId,
-          nits: nitsArray,
+          nits: nitsNormalizados,
         })
       ).unwrap();
 
@@ -116,7 +166,7 @@ const AddNitsBulkDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess
           <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
             📤 Importar Múltiples NITs
           </Typography>
-          <IconButton onClick={handleClose} size="small">
+          <IconButton onClick={handleClose} size="small" disabled={loading}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -196,7 +246,10 @@ const AddNitsBulkDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess
                 • Pega los NITs separados por comas, espacios o en líneas diferentes
               </Typography>
               <Typography variant="body2">
-                • Solo se permiten números de 5-20 dígitos
+                • Acepta NITs con o sin dígito verificador (DV)
+              </Typography>
+              <Typography variant="body2">
+                • Se normalizarán automáticamente al formato XXXXXXXXX-D
               </Typography>
               <Typography variant="body2">
                 • Los NITs duplicados se ignorarán automáticamente
@@ -212,24 +265,40 @@ const AddNitsBulkDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess
               value={nitsTexto}
               onChange={(e) => setNitsTexto(e.target.value)}
               disabled={loading}
-              helperText={`${nitsPreview.length} NIT${nitsPreview.length !== 1 ? 's' : ''} detectado${nitsPreview.length !== 1 ? 's' : ''}`}
+              helperText={`${nitsPreview.length} NIT${nitsPreview.length !== 1 ? 's' : ''} detectado${nitsPreview.length !== 1 ? 's' : ''}${validatingNits ? ' (validando...)' : ''}`}
             />
 
             {nitsPreview.length > 0 && (
               <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="caption" color="text.secondary" gutterBottom>
-                  Vista previa:
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Vista previa ({nitsPreview.filter(nit => nitsValidation.get(nit)?.isValid).length}/{nitsPreview.length} válidos):
+                  </Typography>
+                  {validatingNits && <LinearProgress sx={{ width: 100 }} />}
+                </Box>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-                  {nitsPreview.slice(0, 20).map((nit, index) => (
-                    <Chip
-                      key={index}
-                      label={nit}
-                      size="small"
-                      color={/^\d{5,20}$/.test(nit) ? 'primary' : 'error'}
-                      variant="outlined"
-                    />
-                  ))}
+                  {nitsPreview.slice(0, 20).map((nit, index) => {
+                    const validation = nitsValidation.get(nit);
+                    const isValid = validation?.isValid;
+
+                    return (
+                      <Chip
+                        key={index}
+                        label={isValid ? validation.normalizedNit : nit}
+                        size="small"
+                        icon={
+                          isValid ? (
+                            <SuccessIcon style={{ fontSize: '1rem' }} />
+                          ) : (
+                            <ErrorIcon style={{ fontSize: '1rem' }} />
+                          )
+                        }
+                        color={isValid ? 'success' : 'error'}
+                        variant="outlined"
+                        title={isValid ? 'Válido' : validation?.errorMessage || 'Inválido'}
+                      />
+                    );
+                  })}
                   {nitsPreview.length > 20 && (
                     <Chip
                       label={`+${nitsPreview.length - 20} más`}
@@ -255,10 +324,17 @@ const AddNitsBulkDialog: React.FC<Props> = ({ open, onClose, cuentaId, onSuccess
             <Button
               variant="contained"
               onClick={handleAgregar}
-              disabled={loading || nitsPreview.length === 0}
+              disabled={
+                loading ||
+                validatingNits ||
+                nitsPreview.length === 0 ||
+                Array.from(nitsValidation.values()).some((v) => !v.isValid)
+              }
               sx={{ minWidth: 120 }}
             >
-              {loading ? 'Agregando...' : `Agregar ${nitsPreview.length} NIT${nitsPreview.length !== 1 ? 's' : ''}`}
+              {loading
+                ? 'Agregando...'
+                : `Agregar ${nitsPreview.length} NIT${nitsPreview.length !== 1 ? 's' : ''}`}
             </Button>
           </>
         ) : (
