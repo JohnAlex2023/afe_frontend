@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAppSelector } from './app/hooks';
 import MainLayout from './components/Layout/MainLayout';
 import LoginPage from './features/auth/LoginPage';
+import MicrosoftCallbackPage from './features/auth/MicrosoftCallbackPage';
 import DashboardPage from './features/dashboard/DashboardPage';
 import FacturasPage from './features/facturas/FacturasPage';
 import ResponsablesPage from './features/admin/ResponsablesPage';
@@ -29,6 +30,7 @@ function AppRoutes() {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/microsoft/callback" element={<MicrosoftCallbackPage />} />
 
       {/* Protected routes */}
       <Route
@@ -43,21 +45,21 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="facturas" element={<FacturasPage />} />
 
-        {/* Rutas de administración - solo para admin */}
+        {/* Rutas de administración - admin y viewer (solo lectura) */}
         <Route
           path="admin/responsables"
           element={
-            <RoleGuard allowedRoles={['admin']}>
+            <RoleGuard allowedRoles={['admin', 'viewer']}>
               <ResponsablesPage />
             </RoleGuard>
           }
         />
 
-        {/* Gestión consolidada de proveedores y asignaciones */}
+        {/* Gestión consolidada de proveedores y asignaciones - admin y viewer (solo lectura) */}
         <Route
           path="gestion/proveedores"
           element={
-            <RoleGuard allowedRoles={['admin']}>
+            <RoleGuard allowedRoles={['admin', 'viewer']}>
               <ProveedoresManagementPage />
             </RoleGuard>
           }

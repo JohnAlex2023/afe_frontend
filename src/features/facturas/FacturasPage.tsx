@@ -557,13 +557,11 @@ function FacturasPage() {
                     Similitud
                   </Typography>
                 </TableCell>
-                {user?.rol === 'admin' && (
-                  <TableCell>
-                    <Typography variant="subtitle2" fontWeight={700} color="text.primary">
-                      Responsable
-                    </Typography>
-                  </TableCell>
-                )}
+                <TableCell>
+                  <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                    Responsable
+                  </Typography>
+                </TableCell>
                 <TableCell align="center">
                   <Typography variant="subtitle2" fontWeight={700} color="text.primary">
                     Detalles
@@ -579,7 +577,7 @@ function FacturasPage() {
             <TableBody>
               {filteredFacturas.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={user?.rol === 'admin' ? 9 : 8} align="center">
+                  <TableCell colSpan={9} align="center">
                     <Box py={6}>
                       <Typography variant="h6" color="text.secondary" gutterBottom>
                         No se encontraron facturas
@@ -678,28 +676,26 @@ function FacturasPage() {
                         <Typography variant="body2" color="text.disabled">-</Typography>
                       )}
                     </TableCell>
-                    {user?.rol === 'admin' && (
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Box
-                            sx={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              backgroundColor: factura.nombre_responsable ? zentriaColors.verde.main : zentriaColors.cinza,
-                            }}
-                          />
-                          <Typography
-                            variant="body2"
-                            fontWeight={500}
-                            color={factura.nombre_responsable ? 'text.primary' : 'text.disabled'}
-                          >
-                            {/* @ts-ignore */}
-                            {factura.nombre_responsable || 'Sin asignar'}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                    )}
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <Box
+                          sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            backgroundColor: factura.nombre_responsable ? zentriaColors.verde.main : zentriaColors.cinza,
+                          }}
+                        />
+                        <Typography
+                          variant="body2"
+                          fontWeight={500}
+                          color={factura.nombre_responsable ? 'text.primary' : 'text.disabled'}
+                        >
+                          {/* @ts-ignore */}
+                          {factura.nombre_responsable || 'Sin asignar'}
+                        </Typography>
+                      </Box>
+                    </TableCell>
                     <TableCell align="center">
                       <Tooltip title={`Ver detalles de la factura ${factura.numero_factura}`} {...tooltipProps}>
                         <IconButton

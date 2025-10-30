@@ -382,6 +382,7 @@ function DashboardPage() {
       <FacturaActionsMenu
         anchorEl={anchorEl}
         factura={menuFactura}
+        userRole={user?.rol}
         onClose={handleMenuClose}
         onApprove={handleApprove}
         onReject={handleReject}

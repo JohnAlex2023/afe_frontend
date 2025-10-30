@@ -20,6 +20,8 @@ import {
   DialogActions,
   Divider,
   Collapse,
+  Stack,
+  Chip,
 } from '@mui/material';
 import {
   Visibility,
@@ -31,17 +33,29 @@ import {
   Warning,
   Info,
   Email,
+  Business,
+  Shield,
+  Security,
+  VerifiedUser,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../app/hooks';
 import { setCredentials } from './authSlice';
 import { zentriaColors } from '../../theme/colors';
 import apiClient from '../../services/api';
+import { microsoftAuthService } from '../../services/microsoftAuth.service';
 
 /**
- * Enterprise Login Page - Zentria AFE
- * Diseño profesional nivel Fortune 500
- * Features: Smart alerts, password recovery, rate limiting, field validation
+ * ZENTRIA AFE - Enterprise Login Page
+ * Diseño corporativo Fortune 500 ULTRA MEJORADO
+ *
+ * Features:
+ * - Microsoft OAuth con diseño premium
+ * - Glassmorphism y efectos neumórficos
+ * - Animación de partículas de fondo
+ * - Jerarquía visual espectacular
+ * - Smart alerts y rate limiting
+ * - Password recovery
  */
 
 interface Notification {
@@ -50,10 +64,21 @@ interface Notification {
   severity: 'success' | 'error' | 'warning' | 'info';
 }
 
+// Icono oficial de Microsoft
+const MicrosoftIcon = () => (
+  <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="10" height="10" fill="#F25022" />
+    <rect x="11" width="10" height="10" fill="#7FBA00" />
+    <rect y="11" width="10" height="10" fill="#00A4EF" />
+    <rect x="11" y="11" width="10" height="10" fill="#FFB900" />
+  </svg>
+);
+
 function LoginPage() {
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
@@ -180,20 +205,28 @@ function LoginPage() {
 
         if (newAttempts >= 5) {
           setIsLocked(true);
-          setLockTimeRemaining(300); // 5 minutos
-          errorMessage = 'Demasiados intentos fallidos. Su cuenta ha sido bloqueada por 5 minutos.';
+          setLockTimeRemaining(300);
+          errorMessage =
+            'Demasiados intentos fallidos. Su cuenta ha sido bloqueada temporalmente por 5 minutos.';
           severity = 'error';
         }
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Error del servidor. Por favor, contacte al administrador.';
-      } else if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
-        errorMessage = 'No se pudo conectar con el servidor. Verifique su conexión.';
-      } else {
-        errorMessage = err.response?.data?.detail || err.message || errorMessage;
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
       }
 
       setLoginError(errorMessage);
       showNotification(errorMessage, severity);
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    try {
+      setMicrosoftLoading(true);
+      await microsoftAuthService.loginWithMicrosoft();
+    } catch (error: any) {
+      setMicrosoftLoading(false);
+      const message = error.message || 'Error al iniciar sesión con Microsoft';
+      showNotification(message, 'error');
     }
   };
 
@@ -207,22 +240,27 @@ function LoginPage() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(recoveryEmail)) {
-      setEmailError('Ingrese un correo electrónico válido');
+      setEmailError('Por favor ingrese un correo electrónico válido');
       return;
     }
 
     try {
-      // Aquí iría la llamada al endpoint de recuperación
-      // await apiClient.post('/auth/forgot-password', { email: recoveryEmail });
-
+      await apiClient.post('/auth/recuperar', { email: recoveryEmail });
       showNotification(
-        'Se ha enviado un enlace de recuperación a su correo electrónico.',
+        'Se ha enviado un enlace de recuperación a su correo electrónico. Por favor revise su bandeja de entrada.',
         'success'
       );
       setOpenForgotPassword(false);
       setRecoveryEmail('');
     } catch (err: any) {
-      setEmailError(err.response?.data?.detail || 'Error al enviar el correo de recuperación');
+      let errorMessage = 'Error al enviar el enlace de recuperación';
+      if (err.response?.status === 404) {
+        errorMessage = 'No se encontró ninguna cuenta asociada a este correo electrónico';
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      }
+      setEmailError(errorMessage);
+      showNotification(errorMessage, 'error');
     }
   };
 
@@ -230,21 +268,25 @@ function LoginPage() {
     <Box
       sx={{
         minHeight: '100vh',
-        minWidth: '100vw',
+        width: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        overflow: 'hidden',
-        background: `linear-gradient(135deg, ${zentriaColors.violeta.dark} 0%, ${zentriaColors.violeta.main} 50%, ${zentriaColors.naranja.main} 100%)`,
+        overflow: 'auto',
+        // Fondo corporativo ZENTRIA - tonos suaves de Violeta opaco y Naranja opaco
+        background: `
+          linear-gradient(135deg,
+            #F5E6F2 0%,
+            #FFE8E3 25%,
+            #F0D5EB 50%,
+            #FFD4CB 75%,
+            #EAC9E4 100%)
+        `,
         px: 2,
+        py: { xs: 3, md: 2 },
       }}
     >
-      {/* Patrón de fondo decorativo */}
+      {/* Patrón de fondo sutil - versión corporativa ZENTRIA */}
       <Box
         sx={{
           position: 'absolute',
@@ -252,81 +294,469 @@ function LoginPage() {
           left: 0,
           right: 0,
           bottom: 0,
-          opacity: 0.1,
-          backgroundImage: `radial-gradient(circle at 20% 50%, ${zentriaColors.verde.main} 0%, transparent 50%),
-                           radial-gradient(circle at 80% 80%, ${zentriaColors.naranja.main} 0%, transparent 50%)`,
+          opacity: 0.06,
+          backgroundImage: `
+            radial-gradient(ellipse at 20% 30%, #80006A20 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 70%, #A65C9918 0%, transparent 50%)
+          `,
+          backdropFilter: 'blur(80px)',
+        }}
+      />
+
+      {/* Partículas flotantes sutiles - colores ZENTRIA */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '15%',
+          left: '10%',
+          width: 140,
+          height: 140,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, #80006A12, transparent 70%)',
+          filter: 'blur(50px)',
+          opacity: 0.35,
+          animation: 'float1 12s ease-in-out infinite',
+          '@keyframes float1': {
+            '0%, 100%': { transform: 'translate(0, 0)' },
+            '50%': { transform: 'translate(20px, -20px)' },
+          },
         }}
       />
 
       <Box
         sx={{
+          position: 'absolute',
+          bottom: '15%',
+          right: '10%',
+          width: 160,
+          height: 160,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, #FFB5A615, transparent 70%)',
+          filter: 'blur(55px)',
+          opacity: 0.3,
+          animation: 'float2 14s ease-in-out infinite',
+          '@keyframes float2': {
+            '0%, 100%': { transform: 'translate(0, 0)' },
+            '50%': { transform: 'translate(-25px, 15px)' },
+          },
+        }}
+      />
+
+      {/* Card principal con glassmorphism premium - Tamaño empresarial compacto */}
+      <Box
+        sx={{
           zIndex: 1,
           width: '100%',
-          maxWidth: 500,
+          maxWidth: { xs: '95%', sm: 380, md: 580, lg: 620, xl: 680 },
+          my: { xs: 1, md: 0 },
         }}
       >
-        <Slide direction="down" in={true} timeout={800}>
+        <Slide direction="down" in={true} timeout={1000}>
           <Card
-            elevation={24}
+            elevation={0}
             sx={{
-              borderRadius: 4,
+              borderRadius: '24px',
               width: '100%',
-              backdropFilter: 'blur(10px)',
-              background: 'rgba(255, 255, 255, 0.95)',
-              border: `1px solid ${zentriaColors.violeta.main}30`,
+              backdropFilter: 'blur(40px) saturate(200%)',
+              background: 'transparent',
+              border: 'none',
+              boxShadow: `
+                0 32px 80px rgba(0, 0, 0, 0.28),
+                0 16px 40px rgba(128, 0, 106, 0.25),
+                0 8px 24px rgba(128, 0, 106, 0.15)
+              `,
+              position: 'relative',
+              overflow: 'hidden',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              '&:hover': {
+                boxShadow: `
+                  0 40px 100px rgba(0, 0, 0, 0.32),
+                  0 20px 50px rgba(128, 0, 106, 0.3),
+                  0 10px 30px rgba(128, 0, 106, 0.18)
+                `,
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                top: -2,
+                left: -2,
+                right: -2,
+                bottom: -2,
+                borderRadius: '26px',
+                background: 'linear-gradient(135deg, rgba(128, 0, 106, 0.08), rgba(166, 92, 153, 0.08))',
+                zIndex: -1,
+                filter: 'blur(15px)',
+                opacity: 0.6,
+              },
             }}
           >
-            <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
-              {/* Logo y título */}
-              <Fade in={true} timeout={1000}>
-                <Box textAlign="center" mb={4}>
-                  <Box
-                    sx={{
-                      width: 80,
-                      height: 80,
-                      margin: '0 auto',
-                      mb: 2,
-                      background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
-                      borderRadius: '20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: `0 8px 32px ${zentriaColors.violeta.main}40`,
-                    }}
-                  >
-                    <Lock sx={{ fontSize: 40, color: 'white' }} />
-                  </Box>
-                  <Typography
-                    variant="h3"
-                    fontWeight={800}
-                    sx={{
-                      background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
-                      backgroundClip: 'text',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      mb: 1,
-                    }}
-                  >
-                    ZENTRIA AFE
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary" fontWeight={500}>
-                    Sistema de Aprobación de Facturas
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                    Enterprise Invoice Approval System
-                  </Typography>
+            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+              {/* LAYOUT RESPONSIVO: Vertical hasta tablet, Horizontal en laptop+ */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', md: 'row' },
+                  minHeight: { md: 380, lg: 400, xl: 420 },
+                }}
+              >
+                {/* PANEL IZQUIERDO - BRANDING (más estrecho) */}
+                <Box
+                  sx={{
+                    flex: { xs: 'none', md: '0 0 44%', lg: '0 0 44%' },
+                    // Degradado empresarial enriquecido
+                    background: {
+                      xs: '#80006A',
+                      md: 'linear-gradient(135deg, #7B1FA2 0%, #9C27B0 45%, #BA68C8 100%)',
+                    },
+                    borderRadius: { xs: '24px 24px 0 0', md: '24px 0 0 0' },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    p: { xs: 1.75, sm: 1.75, md: 1.25, lg: 1.5, xl: 1.75 },
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Fade in={true} timeout={1200}>
+                    <Box textAlign="center" sx={{ position: 'relative', zIndex: 1 }}>
+                      {/* Logo corporativo - diseño sólido y fuerte con pulso de seguridad */}
+                      <Box
+                        sx={{
+                          width: { xs: 60, sm: 65, md: 55, lg: 60 },
+                          height: { xs: 60, sm: 65, md: 55, lg: 60 },
+                          margin: '0 auto',
+                          mb: { xs: 1, sm: 1.5, md: 0.75, lg: 1 },
+                          background: '#FFFFFF',  // Blanco sólido - corporativo fuerte
+                          borderRadius: '24px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          // Pulso sutil de seguridad activa
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: -4,
+                            left: -4,
+                            right: -4,
+                            bottom: -4,
+                            borderRadius: '26px',
+                            border: '2px solid rgba(255, 255, 255, 0.6)',
+                            animation: 'securityPulse 3s ease-in-out infinite',
+                          },
+                          '@keyframes securityPulse': {
+                            '0%, 100%': {
+                              opacity: 0,
+                              transform: 'scale(1)',
+                            },
+                            '50%': {
+                              opacity: 1,
+                              transform: 'scale(1.05)',
+                            },
+                          },
+                          '&:hover': {
+                            transform: 'translateY(-3px)',
+                            boxShadow: '0 14px 40px rgba(0, 0, 0, 0.35)',
+                          },
+                        }}
+                      >
+                        <Shield
+                          sx={{
+                            fontSize: { xs: 32, sm: 36, md: 30, lg: 34 },
+                            color: '#80006A',  // Violeta ZENTRIA sobre blanco
+                            filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.15))',
+                          }}
+                        />
+                      </Box>
+
+                      {/* Título con efecto de resplandor premium */}
+                      <Typography
+                        variant="h1"
+                        sx={{
+                          fontWeight: 900,
+                          fontFamily: '"Inter", "Segoe UI", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif',
+                          color: 'white',
+                          mb: { xs: 0.5, sm: 0.75, md: 0.4, lg: 0.5 },
+                          fontSize: { xs: '1.35rem', sm: '1.5rem', md: '1.3rem', lg: '1.5rem' },
+                          letterSpacing: '-0.04em',
+                          textShadow: '0 4px 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)',
+                          lineHeight: 1.1,
+                          position: 'relative',
+                          overflow: 'hidden',
+                          // Efecto de resplandor que recorre el texto una vez
+                          '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: '-100%',
+                            width: '50%',
+                            height: '100%',
+                            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent)',
+                            animation: 'glareEffect 2.5s ease-out 0.8s 1',
+                            transform: 'skewX(-20deg)',
+                          },
+                          '@keyframes glareEffect': {
+                            '0%': {
+                              left: '-100%',
+                            },
+                            '100%': {
+                              left: '200%',
+                            },
+                          },
+                        }}
+                      >
+                        ZENTRIA AFE
+                      </Typography>
+
+                      {/* Subtítulo corporativo elegante */}
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          color: 'rgba(255, 255, 255, 0.95)',
+                          fontFamily: '"Inter", "Segoe UI", "Poppins", sans-serif',
+                          fontWeight: 600,
+                          mb: { xs: 1.25, sm: 1.5, md: 0.75, lg: 1 },
+                          fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.7rem', lg: '0.75rem' },
+                          letterSpacing: '-0.01em',
+                          textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                        }}
+                      >
+                        Sistema de Aprobación de Facturas
+                      </Typography>
+
+                      {/* Badges corporativos con Violeta opaco ZENTRIA */}
+                      <Stack
+                        direction="row"
+                        spacing={2}
+                        justifyContent="center"
+                        alignItems="center"
+                      >
+                        <Chip
+                          icon={<Business sx={{ fontSize: 17, color: 'white' }} />}
+                          label="Enterprise"
+                          size="small"
+                          sx={{
+                            background: '#A65C99',  // Violeta opaco ZENTRIA
+                            border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                            fontFamily: '"Inter", "Segoe UI", sans-serif',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
+                            px: 1.5,
+                            py: 0.3,
+                            height: 32,
+                            color: 'white',
+                            boxShadow: '0 3px 10px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              background: '#8F4E7D',
+                              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                              transform: 'translateY(-2px)',
+                            },
+                          }}
+                        />
+                        <Chip
+                          icon={<VerifiedUser sx={{ fontSize: 17, color: 'white' }} />}
+                          label="Secure"
+                          size="small"
+                          sx={{
+                            background: '#A65C99',  // Violeta opaco ZENTRIA
+                            border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                            fontFamily: '"Inter", "Segoe UI", sans-serif',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
+                            px: 1.5,
+                            py: 0.3,
+                            height: 32,
+                            color: 'white',
+                            boxShadow: '0 3px 10px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              background: '#8F4E7D',
+                              boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                              transform: 'translateY(-2px)',
+                            },
+                          }}
+                        />
+                      </Stack>
+                    </Box>
+                  </Fade>
                 </Box>
+
+                {/* PANEL DERECHO - FORMULARIO (más estrecho) */}
+                <Box
+                  sx={{
+                    flex: { xs: 'none', md: '0 0 56%', lg: '0 0 56%' },
+                    background: '#FFFFFF',
+                    borderRadius: { xs: '0', md: '0 24px 0 0' },
+                    px: { xs: 1.75, sm: 1.75, md: 3.5, lg: 4, xl: 4.5 },
+                    py: { xs: 1.75, sm: 1.75, md: 3, lg: 3.5, xl: 4 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {/* BOTÓN MICROSOFT SSO - CTA PRIMARIO (Enterprise First) */}
+                  <Fade in={true} timeout={1400}>
+                    <Box sx={{ mb: { xs: 1.25, sm: 1.5, md: 0.5, lg: 0.65 }, position: 'relative', zIndex: 1 }}>
+                      {/* Etiqueta descriptiva corporativa - ANTES del botón */}
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          textAlign: 'center',
+                          mb: 0.5,
+                          fontFamily: '"Inter", "Segoe UI", sans-serif',
+                          fontWeight: 700,
+                          color: 'text.primary',
+                          fontSize: { xs: '0.85rem', md: '0.68rem', lg: '0.72rem' },
+                          opacity: 0.9,
+                          letterSpacing: '0.01em',
+                        }}
+                      >
+                        Acceso rápido con tu cuenta corporativa
+                      </Typography>
+
+                      {/* Mensaje de recomendación */}
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          textAlign: 'center',
+                          mb: 0.85,
+                          fontFamily: '"Inter", "Segoe UI", sans-serif',
+                          fontWeight: 500,
+                          color: '#80006A',
+                          fontSize: { xs: '0.75rem', md: '0.58rem', lg: '0.62rem' },
+                          letterSpacing: '0.01em',
+                        }}
+                      >
+                        Recomendado para cuentas corporativas Zentria
+                      </Typography>
+
+                      {/* BOTÓN PRIMARIO - Microsoft SSO con Violeta ZENTRIA */}
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        onClick={handleMicrosoftLogin}
+                        disabled={microsoftLoading || isLocked}
+                        startIcon={microsoftLoading ? <CircularProgress size={17} sx={{ color: 'white' }} /> : <MicrosoftIcon />}
+                        sx={{
+                          py: { xs: 1.5, sm: 1.75, md: 1, lg: 1.15 },
+                          borderRadius: 2.5,
+                          fontFamily: '"Inter", "Segoe UI", sans-serif',
+                          fontWeight: 700,
+                          fontSize: { xs: '0.95rem', sm: '1rem', md: '0.78rem', lg: '0.82rem' },
+                          textTransform: 'none',
+                          letterSpacing: '-0.01em',
+                          background: '#80006A',  // Violeta principal ZENTRIA
+                          color: 'white',
+                          border: 'none',
+                          boxShadow: `
+                            0 8px 24px rgba(128, 0, 106, 0.4),
+                            0 4px 12px rgba(0, 0, 0, 0.15),
+                            inset 0 1px 1px rgba(255, 255, 255, 0.2),
+                            inset 0 -1px 2px rgba(0, 0, 0, 0.15)
+                          `,
+                          transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            width: '0',
+                            height: '0',
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            transform: 'translate(-50%, -50%)',
+                            transition: 'width 0.6s ease, height 0.6s ease',
+                          },
+                          '&:hover': {
+                            background: '#660055',  // Violeta más oscuro
+                            transform: 'translateY(-3px) scale(1.01)',
+                            border: '2px solid rgba(255, 255, 255, 0.3)',
+                            boxShadow: `
+                              0 12px 32px rgba(128, 0, 106, 0.5),
+                              0 6px 16px rgba(0, 0, 0, 0.2),
+                              0 0 20px rgba(128, 0, 106, 0.4),
+                              inset 0 1px 1px rgba(255, 255, 255, 0.25),
+                              inset 0 -1px 2px rgba(0, 0, 0, 0.18)
+                            `,
+                            '&::before': {
+                              width: '300px',
+                              height: '300px',
+                            },
+                          },
+                          '&:active': {
+                            transform: 'translateY(-1px) scale(1.005)',
+                            boxShadow: `
+                              0 6px 20px rgba(128, 0, 106, 0.4),
+                              inset 0 2px 4px rgba(0, 0, 0, 0.15)
+                            `,
+                          },
+                          '&:disabled': {
+                            background: '#D7D7D7',  // Cinza ZENTRIA
+                            color: '#9E9E9E',
+                            boxShadow: 'none',
+                          },
+                        }}
+                      >
+                        {microsoftLoading ? 'Conectando...' : 'Continuar con Microsoft'}
+                      </Button>
+                    </Box>
               </Fade>
+
+              {/* Divider secundario - Login tradicional como alternativa */}
+              <Box sx={{ display: 'flex', alignItems: 'center', my: { xs: 1.5, sm: 2, md: 0.6, lg: 0.75 }, position: 'relative', zIndex: 1 }}>
+                <Divider
+                  sx={{
+                    flex: 1,
+                    height: '1px',
+                    background: `linear-gradient(to left, #B0B0B0, transparent)`,
+                    border: 'none',
+                  }}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{
+                    px: { xs: 3, md: 1.25 },
+                    color: '#6B6B6B',
+                    fontFamily: '"Inter", "Segoe UI", sans-serif',
+                    fontWeight: 600,
+                    fontSize: { xs: '0.75rem', md: '0.58rem', lg: '0.62rem' },
+                    textTransform: 'none',
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  O inicia sesión con credenciales
+                </Typography>
+                <Divider
+                  sx={{
+                    flex: 1,
+                    height: '1px',
+                    background: `linear-gradient(to right, #B0B0B0, transparent)`,
+                    border: 'none',
+                  }}
+                />
+              </Box>
 
               {/* Alerta de bloqueo */}
               <Collapse in={isLocked}>
                 <Alert
                   severity="error"
-                  icon={<Warning />}
+                  icon={<Warning sx={{ fontSize: { xs: 20, md: 18 } }} />}
                   sx={{
-                    mb: 3,
-                    borderRadius: 2,
-                    '& .MuiAlert-message': { fontWeight: 500 },
+                    mb: { xs: 3, md: 2 },
+                    borderRadius: 2.5,
+                    border: '1.5px solid',
+                    borderColor: 'error.light',
+                    fontSize: { xs: '0.9rem', md: '0.82rem' },
+                    '& .MuiAlert-message': { fontWeight: 600 },
                   }}
                 >
                   Cuenta bloqueada temporalmente. Tiempo restante: {Math.floor(lockTimeRemaining / 60)}:
@@ -334,24 +764,35 @@ function LoginPage() {
                 </Alert>
               </Collapse>
 
-              {/* Alerta de error de login */}
+              {/* Alerta de error de login con animación shake */}
               <Collapse in={!!loginError && !isLocked}>
                 <Alert
                   severity="error"
-                  icon={<ErrorIcon />}
+                  icon={<ErrorIcon sx={{ fontSize: { xs: 20, md: 18 } }} />}
                   onClose={() => setLoginError('')}
                   sx={{
-                    mb: 3,
-                    borderRadius: 2,
+                    mb: { xs: 3, md: 2 },
+                    borderRadius: 2.5,
+                    border: '1.5px solid',
+                    borderColor: 'error.light',
+                    fontSize: { xs: '0.9rem', md: '0.82rem' },
                     '& .MuiAlert-message': { fontWeight: 500 },
+                    animation: loginError ? 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both' : 'none',
+                    '@keyframes shake': {
+                      '10%, 90%': { transform: 'translateX(-2px)' },
+                      '20%, 80%': { transform: 'translateX(4px)' },
+                      '30%, 50%, 70%': { transform: 'translateX(-6px)' },
+                      '40%, 60%': { transform: 'translateX(6px)' },
+                    },
                   }}
                 >
                   {loginError}
                 </Alert>
               </Collapse>
 
-              {/* Formulario */}
-              <Box component="form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+              {/* Formulario de credenciales con Floating Labels */}
+              <Box component="form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }} sx={{ position: 'relative', zIndex: 1 }}>
+                {/* Campo de usuario con Floating Label Premium */}
                 <TextField
                   fullWidth
                   label="Usuario"
@@ -367,19 +808,76 @@ function LoginPage() {
                   disabled={loading || isLocked}
                   error={!!usuarioError}
                   helperText={usuarioError}
+                  InputLabelProps={{
+                    shrink: usuario.length > 0 || undefined,
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Person sx={{ color: usuarioError ? 'error.main' : zentriaColors.violeta.main }} />
+                        <Person sx={{ color: usuarioError ? 'error.main' : '#80006A', fontSize: 22 }} />
                       </InputAdornment>
                     ),
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      '&:hover fieldset': {
-                        borderColor: zentriaColors.violeta.main,
+                      borderRadius: 3,
+                      background: `
+                        linear-gradient(to bottom,
+                          rgba(255, 255, 255, 0.9),
+                          rgba(252, 252, 252, 0.9))
+                      `,
+                      backdropFilter: 'blur(12px) saturate(180%)',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      height: { xs: '52px', sm: '54px', md: '44px', lg: '46px' },
+                      '& fieldset': {
+                        borderWidth: '2px',
+                        borderColor: 'rgba(0, 0, 0, 0.12)',
+                        transition: 'all 0.3s',
                       },
+                      '&:hover': {
+                        background: `
+                          linear-gradient(to bottom,
+                            rgba(255, 255, 255, 0.98),
+                            rgba(254, 254, 254, 0.98))
+                        `,
+                        '& fieldset': {
+                          borderColor: '#A65C99',  // Violeta opaco ZENTRIA
+                          borderWidth: '2px',
+                        },
+                      },
+                      '&.Mui-focused': {
+                        background: 'rgba(255, 255, 255, 1)',
+                        boxShadow: `
+                          0 0 0 4px rgba(33, 150, 243, 0.12),
+                          0 2px 10px rgba(33, 150, 243, 0.08),
+                          inset 0 1px 0 rgba(255, 255, 255, 1)
+                        `,
+                        '& fieldset': {
+                          borderWidth: '2.5px',
+                          borderColor: '#2196F3',  // Azul corporativo para focus
+                        },
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontWeight: 600,
+                      fontSize: { xs: '0.95rem', md: '0.88rem' },
+                      color: '#6B6B6B',  // Medium Gray para labels
+                      '&.Mui-focused': {
+                        color: '#2196F3',  // Azul corporativo cuando está enfocado
+                        fontWeight: 700,
+                      },
+                      '&.MuiInputLabel-shrink': {
+                        transform: 'translate(14px, -9px) scale(0.85)',
+                        background: 'linear-gradient(to bottom, white, rgba(255,255,255,0.95))',
+                        padding: '0 6px',
+                      },
+                    },
+                    '& .MuiInputBase-input': {
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontSize: { xs: '1rem', md: '0.92rem' },
+                      fontWeight: 500,
+                      color: '#333333',  // Dark Charcoal para el texto ingresado
                     },
                   }}
                   onKeyPress={(e) => {
@@ -388,6 +886,8 @@ function LoginPage() {
                     }
                   }}
                 />
+
+                {/* Campo de contraseña con Floating Label Premium */}
                 <TextField
                   fullWidth
                   label="Contraseña"
@@ -403,10 +903,13 @@ function LoginPage() {
                   disabled={loading || isLocked}
                   error={!!passwordError}
                   helperText={passwordError}
+                  InputLabelProps={{
+                    shrink: password.length > 0 || undefined,
+                  }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Lock sx={{ color: passwordError ? 'error.main' : zentriaColors.violeta.main }} />
+                        <Lock sx={{ color: passwordError ? 'error.main' : '#80006A', fontSize: 22 }} />
                       </InputAdornment>
                     ),
                     endAdornment: (
@@ -415,6 +918,15 @@ function LoginPage() {
                           onClick={() => setShowPassword(!showPassword)}
                           edge="end"
                           disabled={loading || isLocked}
+                          sx={{
+                            color: showPassword ? '#2196F3' : '#80006A',  // Azul cuando activo, Violeta cuando inactivo
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                              background: showPassword ? 'rgba(33, 150, 243, 0.1)' : 'rgba(128, 0, 106, 0.1)',
+                              transform: 'scale(1.08)',
+                              color: showPassword ? '#1976D2' : '#A65C99',
+                            },
+                          }}
                         >
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
@@ -423,10 +935,64 @@ function LoginPage() {
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 2,
-                      '&:hover fieldset': {
-                        borderColor: zentriaColors.violeta.main,
+                      borderRadius: 3,
+                      background: `
+                        linear-gradient(to bottom,
+                          rgba(255, 255, 255, 0.9),
+                          rgba(252, 252, 252, 0.9))
+                      `,
+                      backdropFilter: 'blur(12px) saturate(180%)',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      height: { xs: '52px', sm: '54px', md: '44px', lg: '46px' },
+                      '& fieldset': {
+                        borderWidth: '2px',
+                        borderColor: 'rgba(0, 0, 0, 0.12)',
+                        transition: 'all 0.3s',
                       },
+                      '&:hover': {
+                        background: `
+                          linear-gradient(to bottom,
+                            rgba(255, 255, 255, 0.98),
+                            rgba(254, 254, 254, 0.98))
+                        `,
+                        '& fieldset': {
+                          borderColor: '#A65C99',  // Violeta opaco ZENTRIA
+                          borderWidth: '2px',
+                        },
+                      },
+                      '&.Mui-focused': {
+                        background: 'rgba(255, 255, 255, 1)',
+                        boxShadow: `
+                          0 0 0 4px rgba(33, 150, 243, 0.12),
+                          0 2px 10px rgba(33, 150, 243, 0.08),
+                          inset 0 1px 0 rgba(255, 255, 255, 1)
+                        `,
+                        '& fieldset': {
+                          borderWidth: '2.5px',
+                          borderColor: '#2196F3',  // Azul corporativo para focus
+                        },
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontWeight: 600,
+                      fontSize: { xs: '0.95rem', md: '0.88rem' },
+                      color: '#6B6B6B',  // Medium Gray para labels
+                      '&.Mui-focused': {
+                        color: '#2196F3',  // Azul corporativo cuando está enfocado
+                        fontWeight: 700,
+                      },
+                      '&.MuiInputLabel-shrink': {
+                        transform: 'translate(14px, -9px) scale(0.85)',
+                        background: 'linear-gradient(to bottom, white, rgba(255,255,255,0.95))',
+                        padding: '0 6px',
+                      },
+                    },
+                    '& .MuiInputBase-input': {
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontSize: { xs: '1rem', md: '0.92rem' },
+                      fontWeight: 500,
+                      color: '#333333',  // Dark Charcoal para el texto ingresado
                     },
                   }}
                   onKeyPress={(e) => {
@@ -436,22 +1002,44 @@ function LoginPage() {
                   }}
                 />
 
-                {/* Link de recuperación de contraseña */}
-                <Box sx={{ textAlign: 'right', mt: 1, mb: 2 }}>
+                {/* Link de recuperación con mejor contraste WCAG AA */}
+                <Box sx={{ textAlign: 'right', mt: { xs: 1.5, md: 0.4 }, mb: { xs: 2, md: 0.85 } }}>
                   <Link
                     component="button"
+                    type="button"
                     variant="body2"
                     onClick={() => setOpenForgotPassword(true)}
                     disabled={loading || isLocked}
                     sx={{
-                      color: zentriaColors.violeta.main,
+                      color: '#80006A',  // Violeta ZENTRIA
                       textDecoration: 'none',
-                      fontWeight: 500,
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontWeight: 700,
+                      fontSize: { xs: '0.9rem', md: '0.72rem', lg: '0.76rem' },
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      position: 'relative',
+                      letterSpacing: '0.01em',
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        bottom: -3,
+                        left: 0,
+                        width: '0%',
+                        height: '2.5px',
+                        background: '#80006A',
+                        borderRadius: '2px',
+                        transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      },
                       '&:hover': {
-                        textDecoration: 'underline',
+                        color: '#A65C99',
+                        transform: 'translateX(2px)',
+                        '&::after': {
+                          width: '100%',
+                        },
                       },
                       '&:disabled': {
                         color: 'text.disabled',
+                        transform: 'none',
                       },
                     }}
                   >
@@ -459,37 +1047,91 @@ function LoginPage() {
                   </Link>
                 </Box>
 
+                {/* Botón de inicio de sesión - PRIMARIO con Violeta ZENTRIA #80006A */}
                 <Button
                   fullWidth
                   variant="contained"
                   size="large"
                   type="submit"
-                  disabled={loading || !usuario || !password || isLocked}
+                  disabled={loading || isLocked}
                   sx={{
-                    mt: 2,
-                    py: 1.8,
-                    borderRadius: 2,
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
+                    mt: 0.5,
+                    py: { xs: 1.5, sm: 1.75, md: 1, lg: 1.15 },
+                    borderRadius: 2.5,
+                    fontFamily: '"Inter", "Segoe UI", sans-serif',
+                    fontWeight: 700,
+                    fontSize: { xs: '0.95rem', sm: '1rem', md: '0.78rem', lg: '0.82rem' },
                     textTransform: 'none',
-                    background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
-                    boxShadow: `0 8px 24px ${zentriaColors.violeta.main}40`,
-                    transition: 'all 0.3s ease',
+                    letterSpacing: '0.01em',
+                    border: 'none',
+                    // Violeta principal ZENTRIA (#80006A) - SIEMPRE acción primaria
+                    background: '#80006A',  // SIEMPRE Violeta principal - mismo peso que Microsoft
+                    color: '#FFFFFF',
+                    // Sin opacidad reducida - SIEMPRE visible y sólido
+                    // La progresión visual ahora es solo por brillo/sombra, no por color
+                    opacity: 1,
+                    // Sombras progresivas - feedback visual sin cambiar el color principal
+                    boxShadow: usuario && password
+                      ? '0 6px 20px rgba(128, 0, 106, 0.5), 0 2px 8px rgba(128, 0, 106, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      : (usuario || password)
+                        ? '0 4px 14px rgba(128, 0, 106, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18)'
+                        : '0 4px 12px rgba(128, 0, 106, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    // Efecto de brillo progresivo - más sutil pero efectivo
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1))',
+                      opacity: usuario && password ? 1 : (usuario || password) ? 0.7 : 0.5,
+                      transition: 'opacity 0.4s ease',
+                    },
+                    // Animación de pulso sutil cuando está listo
+                    animation: usuario && password
+                      ? 'readyPulse 2.5s ease-in-out infinite'
+                      : 'none',
+                    '@keyframes readyPulse': {
+                      '0%, 100%': {
+                        boxShadow: '0 6px 20px rgba(128, 0, 106, 0.5), 0 2px 8px rgba(128, 0, 106, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                      },
+                      '50%': {
+                        boxShadow: '0 8px 26px rgba(128, 0, 106, 0.6), 0 3px 10px rgba(128, 0, 106, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+                      },
+                    },
                     '&:hover': {
-                      background: `linear-gradient(135deg, ${zentriaColors.violeta.dark}, ${zentriaColors.naranja.dark})`,
-                      boxShadow: `0 12px 32px ${zentriaColors.violeta.main}60`,
+                      background: '#660055',  // SIEMPRE hover más oscuro - consistente
                       transform: 'translateY(-2px)',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
+                      boxShadow: '0 10px 32px rgba(128, 0, 106, 0.55), 0 4px 12px rgba(128, 0, 106, 0.35), 0 0 20px rgba(128, 0, 106, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+                      '&::before': {
+                        opacity: 1,
+                      },
+                    },
+                    '&:active': {
+                      transform: 'translateY(-1px) scale(0.99)',
+                      boxShadow: '0 4px 14px rgba(128, 0, 106, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.15)',
                     },
                     '&:disabled': {
-                      background: '#ccc',
+                      background: '#D7D7D7',  // Cinza ZENTRIA para disabled
+                      color: '#9E9E9E',
+                      opacity: 0.6,
+                      boxShadow: 'none',
+                      cursor: 'not-allowed',
+                      animation: 'none',
                     },
                   }}
                   onClick={handleLogin}
                 >
                   {loading ? (
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <CircularProgress size={20} sx={{ color: 'white' }} />
-                      <span>Iniciando sesión...</span>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <CircularProgress size={22} sx={{ color: 'white' }} />
+                      <span>Verificando credenciales...</span>
                     </Box>
                   ) : isLocked ? (
                     'Cuenta Bloqueada'
@@ -497,27 +1139,173 @@ function LoginPage() {
                     'Iniciar Sesión'
                   )}
                 </Button>
-              </Box>
 
-              {/* Footer */}
-              <Box textAlign="center" mt={4}>
-                <Typography variant="caption" color="text.secondary">
-                  © 2025 Zentria. Todos los derechos reservados.
+                {/* Mensaje de seguridad */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: { xs: 0.75, md: 0.35 },
+                    mt: { xs: 1.5, md: 0.5 },
+                    px: { xs: 1.5, md: 0.75 },
+                    py: { xs: 1.25, md: 0.6 },
+                    background: 'rgba(33, 150, 243, 0.05)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(33, 150, 243, 0.15)',
+                  }}
+                >
+                  <Security sx={{ fontSize: { xs: 18, md: 13 }, color: '#2196F3' }} />
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontWeight: 600,
+                      fontSize: { xs: '0.75rem', md: '0.58rem', lg: '0.6rem' },
+                      color: '#2196F3',
+                      letterSpacing: '0.01em',
+                    }}
+                  >
+                    Conexión cifrada mediante Microsoft Azure AD
+                  </Typography>
+                </Box>
+              </Box>
+                </Box>
+                {/* Fin Panel Derecho */}
+              </Box>
+              {/* Fin Layout Horizontal */}
+
+              {/* Footer corporativo premium - Al pie de la tarjeta completa */}
+              <Box
+                textAlign="center"
+                sx={{
+                  background: `
+                    linear-gradient(
+                      rgba(255, 255, 255, 0.98),
+                      rgba(255, 255, 255, 0.96)
+                    )
+                  `,
+                  borderRadius: { xs: '0 0 24px 24px', lg: '0 0 24px 24px' },
+                  px: { xs: 1.5, sm: 2, md: 1.25, lg: 1.5, xl: 2 },
+                  pb: { xs: 1.25, sm: 1.5, md: 0.85 },
+                  pt: { xs: 1.25, sm: 1.25, md: 0.85 },
+                }}
+              >
+                <Divider
+                  sx={{
+                    mb: { xs: 1.5, sm: 2, md: 1 },
+                    height: '1px',
+                    background: 'linear-gradient(to right, transparent, rgba(0, 0, 0, 0.08), transparent)',
+                    border: 'none',
+                  }}
+                />
+
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    mb: { xs: 1.5, md: 1 },
+                    fontFamily: '"Inter", "Segoe UI", sans-serif',
+                    fontWeight: 600,
+                    fontSize: { xs: '0.75rem', md: '0.68rem' },
+                    color: '#6B6B6B',  // Medium Gray - WCAG AA compliant
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  © 2025 Zentria.<br />
+                   Todos los derechos reservados.
                 </Typography>
-                <Divider sx={{ my: 2 }} />
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    v1.0.0
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    •
-                  </Typography>
+
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: { xs: 1.5, sm: 2.5, md: 1.25 },
+                  flexWrap: 'wrap',
+                  alignItems: 'center'
+                }}>
+                  <Chip
+                    icon={<Security sx={{ fontSize: { xs: 15, md: 13 } }} />}
+                    label="v1.0.0"
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontSize: { xs: '0.7rem', md: '0.65rem' },
+                      height: { xs: 26, md: 24 },
+                      fontWeight: 700,
+                      borderWidth: '1.5px',
+                      borderColor: 'rgba(128, 0, 106, 0.3)',
+                      color: '#80006A',  // Violeta ZENTRIA
+                      background: 'rgba(128, 0, 106, 0.05)',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        borderColor: 'rgba(128, 0, 106, 0.5)',
+                        background: 'rgba(128, 0, 106, 0.1)',
+                        transform: 'translateY(-1px)',
+                      },
+                    }}
+                  />
                   <Link
                     href="#"
                     variant="caption"
-                    sx={{ color: zentriaColors.violeta.main, textDecoration: 'none' }}
+                    sx={{
+                      color: '#80006A',  // Violeta ZENTRIA - mejor contraste WCAG
+                      textDecoration: 'none',
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontWeight: 700,
+                      fontSize: { xs: '0.75rem', md: '0.68rem' },
+                      transition: 'all 0.25s',
+                      position: 'relative',
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        bottom: -2,
+                        left: 0,
+                        width: '0%',
+                        height: '2px',
+                        background: '#80006A',
+                        transition: 'width 0.25s',
+                      },
+                      '&:hover': {
+                        color: '#660055',  // Violeta más oscuro al hover
+                        '&::after': {
+                          width: '100%',
+                        },
+                      },
+                    }}
                   >
                     Soporte Técnico
+                  </Link>
+                  <Link
+                    href="#"
+                    variant="caption"
+                    sx={{
+                      color: '#80006A',  // Violeta ZENTRIA - mejor contraste WCAG
+                      textDecoration: 'none',
+                      fontFamily: '"Inter", "Segoe UI", sans-serif',
+                      fontWeight: 700,
+                      fontSize: { xs: '0.75rem', md: '0.68rem' },
+                      transition: 'all 0.25s',
+                      position: 'relative',
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        bottom: -2,
+                        left: 0,
+                        width: '0%',
+                        height: '2px',
+                        background: '#80006A',
+                        transition: 'width 0.25s',
+                      },
+                      '&:hover': {
+                        color: '#660055',  // Violeta más oscuro al hover
+                        '&::after': {
+                          width: '100%',
+                        },
+                      },
+                    }}
+                  >
+                    Términos de Uso
                   </Link>
                 </Box>
               </Box>
@@ -526,7 +1314,7 @@ function LoginPage() {
         </Slide>
       </Box>
 
-      {/* Diálogo de recuperación de contraseña */}
+      {/* Diálogo de recuperación de contraseña mejorado */}
       <Dialog
         open={openForgotPassword}
         onClose={() => setOpenForgotPassword(false)}
@@ -534,28 +1322,31 @@ function LoginPage() {
         fullWidth
         PaperProps={{
           sx: {
-            borderRadius: 3,
+            borderRadius: 5,
             background: 'rgba(255, 255, 255, 0.98)',
-            backdropFilter: 'blur(10px)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 20px 60px rgba(128, 0, 106, 0.35)',
           },
         }}
       >
         <DialogTitle
           sx={{
-            background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
+            background: '#80006A',  // Violeta principal ZENTRIA
             color: 'white',
-            fontWeight: 700,
+            fontWeight: 800,
             display: 'flex',
             alignItems: 'center',
-            gap: 1,
+            gap: 2,
+            fontSize: '1.4rem',
+            py: 3,
           }}
         >
-          <Email />
+          <Email sx={{ fontSize: 32 }} />
           Recuperar Contraseña
         </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Typography variant="body2" color="text.secondary" mb={3}>
-            Ingrese su correo electrónico registrado. Le enviaremos un enlace para restablecer su
+        <DialogContent sx={{ pt: 4, pb: 2 }}>
+          <Typography variant="body2" color="text.secondary" mb={3.5} sx={{ fontWeight: 500, fontSize: '0.95rem' }}>
+            Ingrese su correo electrónico registrado. Le enviaremos un enlace seguro para restablecer su
             contraseña.
           </Typography>
           <TextField
@@ -573,21 +1364,25 @@ function LoginPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Email sx={{ color: emailError ? 'error.main' : zentriaColors.violeta.main }} />
+                  <Email sx={{ color: emailError ? 'error.main' : '#80006A' }} />
                 </InputAdornment>
               ),
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
+                borderRadius: 3,
                 '&:hover fieldset': {
-                  borderColor: zentriaColors.violeta.main,
+                  borderColor: '#A65C99',  // Violeta opaco ZENTRIA
+                  borderWidth: 2,
+                },
+                '&.Mui-focused': {
+                  boxShadow: '0 0 0 3px rgba(128, 0, 106, 0.12)',
                 },
               },
             }}
           />
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+        <DialogActions sx={{ px: 3, pb: 3, gap: 1.5 }}>
           <Button
             onClick={() => {
               setOpenForgotPassword(false);
@@ -596,8 +1391,10 @@ function LoginPage() {
             }}
             sx={{
               color: 'text.secondary',
-              fontWeight: 600,
+              fontWeight: 700,
               textTransform: 'none',
+              px: 3,
+              fontSize: '0.95rem',
             }}
           >
             Cancelar
@@ -606,12 +1403,15 @@ function LoginPage() {
             onClick={handleForgotPassword}
             variant="contained"
             sx={{
-              background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
-              fontWeight: 600,
+              background: '#80006A',  // Violeta principal ZENTRIA
+              fontWeight: 700,
               textTransform: 'none',
-              px: 3,
+              px: 4,
+              fontSize: '0.95rem',
+              boxShadow: '0 4px 12px rgba(128, 0, 106, 0.35)',
               '&:hover': {
-                background: `linear-gradient(135deg, ${zentriaColors.violeta.dark}, ${zentriaColors.naranja.dark})`,
+                background: '#660055',  // Violeta más oscuro
+                boxShadow: '0 6px 16px rgba(128, 0, 106, 0.45)',
               },
             }}
           >
@@ -620,7 +1420,7 @@ function LoginPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Sistema de notificaciones */}
+      {/* Sistema de notificaciones mejorado */}
       <Snackbar
         open={notification.open}
         autoHideDuration={notification.severity === 'error' || notification.severity === 'warning' ? 8000 : 4000}
@@ -643,11 +1443,13 @@ function LoginPage() {
           }
           sx={{
             width: '100%',
-            borderRadius: 2,
-            boxShadow: `0 8px 32px ${zentriaColors.violeta.main}40`,
+            borderRadius: 4,
+            backdropFilter: 'blur(20px)',
+            boxShadow: `0 12px 40px ${zentriaColors.violeta.main}50`,
+            border: '1.5px solid rgba(255, 255, 255, 0.3)',
             '& .MuiAlert-message': {
-              fontWeight: 500,
-              fontSize: '0.95rem',
+              fontWeight: 700,
+              fontSize: '1rem',
             },
           }}
         >

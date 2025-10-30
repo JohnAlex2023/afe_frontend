@@ -38,6 +38,8 @@ import {
   selectAsignacionesLoading,
   selectLastSync,
 } from './proveedoresSlice';
+import { hasPermission } from '../../constants/roles';
+import ReadOnlyWrapper from '../../components/Auth/ReadOnlyWrapper';
 
 // Importar tabs individuales
 import ProveedoresTab from './tabs/ProveedoresTab';
@@ -65,6 +67,8 @@ function TabPanel(props: TabPanelProps) {
  */
 function ProveedoresManagementPage() {
   const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
+  const canManage = hasPermission(user?.rol || '', 'canManageProviders');
 
   const [tabValue, setTabValue] = useState(0);
   const proveedoresLoading = useAppSelector(selectProveedoresLoading);
@@ -176,21 +180,23 @@ function ProveedoresManagementPage() {
       </Paper>
 
       {/* Contenido de los Tabs */}
-      <TabPanel value={tabValue} index={0}>
-        <ProveedoresTab />
-      </TabPanel>
+      <ReadOnlyWrapper requiredPermission="canManageProviders">
+        <TabPanel value={tabValue} index={0}>
+          <ProveedoresTab />
+        </TabPanel>
 
-      <TabPanel value={tabValue} index={1}>
-        <AsignacionesTab />
-      </TabPanel>
+        <TabPanel value={tabValue} index={1}>
+          <AsignacionesTab />
+        </TabPanel>
 
-      <TabPanel value={tabValue} index={2}>
-        <PorResponsableTab />
-      </TabPanel>
+        <TabPanel value={tabValue} index={2}>
+          <PorResponsableTab />
+        </TabPanel>
 
-      <TabPanel value={tabValue} index={3}>
-        <PorProveedorTab />
-      </TabPanel>
+        <TabPanel value={tabValue} index={3}>
+          <PorProveedorTab />
+        </TabPanel>
+      </ReadOnlyWrapper>
     </Box>
   );
 }

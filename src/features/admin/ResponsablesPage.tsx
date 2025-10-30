@@ -29,6 +29,8 @@ import {
 } from '@mui/icons-material';
 import { zentriaColors } from '../../theme/colors';
 import apiClient from '../../services/api';
+import { useAppSelector } from '../../app/hooks';
+import { hasPermission } from '../../constants/roles';
 
 interface Responsable {
   id: number;
@@ -50,9 +52,22 @@ interface Role {
 
 /**
  * ResponsablesPage Component
- * Página de administración de responsables (solo para admin)
+ * Página de administración de responsables (admin y viewer)
  */
 function ResponsablesPage() {
+  const user = useAppSelector((state) => state.auth.user);
+  const canManage = hasPermission(user?.rol || '', 'canManageUsers');
+  const canViewFullData = hasPermission(user?.rol || '', 'canViewFullUserData');
+
+  // Función para ocultar email parcialmente
+  const maskEmail = (email: string): string => {
+    if (!email || canViewFullData) return email;
+    const [local, domain] = email.split('@');
+    if (!domain) return email;
+    const maskedLocal = local.substring(0, 3) + '***';
+    return `${maskedLocal}@${domain}`;
+  };
+
   const [responsables, setResponsables] = useState<Responsable[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,18 +157,18 @@ function ResponsablesPage() {
       handleCloseDialog();
       loadData();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al guardar responsable');
+      setError(err.response?.data?.detail || 'Error al guardar usuario');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Está seguro de eliminar este responsable?')) return;
+    if (!confirm('¿Está seguro de eliminar este usuario?')) return;
 
     try {
       await apiClient.delete(`/responsables/${id}`);
       loadData();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al eliminar responsable');
+      setError(err.response?.data?.detail || 'Error al eliminar usuario');
     }
   };
 
@@ -169,7 +184,7 @@ function ResponsablesPage() {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4" fontWeight={700} color={zentriaColors.violeta.main}>
-          Gestión de Responsables
+          Gestión de Usuarios
         </Typography>
         <Box display="flex" gap={2}>
           <Button
@@ -180,16 +195,18 @@ function ResponsablesPage() {
           >
             Actualizar
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-            sx={{
-              background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
-            }}
-          >
-            Nuevo Responsable
-          </Button>
+          {canManage && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{
+                background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
+              }}
+            >
+              Nuevo Usuario
+            </Button>
+          )}
         </Box>
       </Box>
 
@@ -220,7 +237,7 @@ function ResponsablesPage() {
                 <TableRow key={responsable.id} hover>
                   <TableCell>{responsable?.usuario || '-'}</TableCell>
                   <TableCell>{responsable?.nombre || '-'}</TableCell>
-                  <TableCell>{responsable?.email || '-'}</TableCell>
+                  <TableCell>{maskEmail(responsable?.email || '-')}</TableCell>
                   <TableCell>{responsable?.area || '-'}</TableCell>
                   <TableCell>
                     <Chip
@@ -237,22 +254,30 @@ function ResponsablesPage() {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleOpenDialog(responsable)}
-                      sx={{ color: zentriaColors.naranja.main }}
-                      title="Editar responsable"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDelete(responsable.id)}
-                      sx={{ color: 'error.main' }}
-                      title="Eliminar responsable"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    {canManage ? (
+                      <>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleOpenDialog(responsable)}
+                          sx={{ color: zentriaColors.naranja.main }}
+                          title="Editar usuario"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(responsable.id)}
+                          sx={{ color: 'error.main' }}
+                          title="Eliminar usuario"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">
+                        Solo lectura
+                      </Typography>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -260,7 +285,7 @@ function ResponsablesPage() {
               <TableRow>
                 <TableCell colSpan={7} align="center">
                   <Typography variant="body2" color="text.secondary" py={4}>
-                    No hay responsables disponibles
+                    No hay usuarios disponibles
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -278,7 +303,7 @@ function ResponsablesPage() {
             fontWeight: 700,
           }}
         >
-          {editingId ? 'Editar Responsable' : 'Nuevo Responsable'}
+          {editingId ? 'Editar Usuario' : 'Nuevo Usuario'}
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
           {error && (

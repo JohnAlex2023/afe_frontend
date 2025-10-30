@@ -30,19 +30,20 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { logout } from '../../features/auth/authSlice';
 import { zentriaColors } from '../../theme/colors';
+import { getRoleLabel } from '../../constants/roles';
 
 const DRAWER_WIDTH = 260;
 
 // Menús base para todos los usuarios
 const baseMenuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'responsable'] },
-  { text: 'Por Revisar', icon: <DescriptionIcon />, path: '/facturas', roles: ['admin', 'responsable'] },
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'responsable', 'viewer'] },
+  { text: 'Por Revisar', icon: <DescriptionIcon />, path: '/facturas', roles: ['admin', 'responsable', 'viewer'] },
 ];
 
 // Menús adicionales para administradores
 const adminMenuItems = [
-  { text: 'Responsables', icon: <PeopleIcon />, path: '/admin/responsables', roles: ['admin'] },
-  { text: 'Gestión de Proveedores', icon: <StoreIcon />, path: '/gestion/proveedores', roles: ['admin'] },
+  { text: 'Gestión de Usuarios', icon: <PeopleIcon />, path: '/admin/responsables', roles: ['admin', 'viewer'] },
+  { text: 'Gestión de Proveedores', icon: <StoreIcon />, path: '/gestion/proveedores', roles: ['admin', 'viewer'] },
   { text: 'Configuración de Correos', icon: <EmailIcon />, path: '/email-config', roles: ['admin'] },
 ];
 
@@ -77,7 +78,8 @@ function MainLayout() {
   };
 
   // Filtrar menús según el rol del usuario
-  const allMenuItems = user?.rol === 'admin'
+  // Admin y viewer ven los menús adicionales (con diferentes permisos)
+  const allMenuItems = user?.rol === 'admin' || user?.rol === 'viewer'
     ? [...baseMenuItems, ...adminMenuItems]
     : baseMenuItems;
   const filteredMenuItems = allMenuItems.filter(item => user && item.roles.includes(user.rol));
@@ -257,7 +259,7 @@ function MainLayout() {
                         letterSpacing: '0.5px',
                       }}
                     >
-                      {user?.rol || 'Rol'}
+                      {getRoleLabel(user?.rol || '')}
                     </Typography>
                   </Box>
                 </Box>
