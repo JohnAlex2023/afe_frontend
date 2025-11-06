@@ -26,7 +26,7 @@ import {
   CircularProgress,
   Chip,
 } from '@mui/material';
-import { Close as CloseIcon, CheckCircle as CheckCircleIcon, ErrorCircle as ErrorCircleIcon } from '@mui/icons-material';
+import { Close as CloseIcon, CheckCircle as CheckCircleIcon, ErrorOutline as ErrorCircleIcon } from '@mui/icons-material';
 import { useAppDispatch } from '../../../app/hooks';
 import { crearNit } from '../emailConfigSlice';
 import nitValidationService, { ValidationResult } from '../../../services/nitValidation.service';

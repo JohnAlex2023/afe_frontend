@@ -5,7 +5,7 @@
  * @date 2025-10-19
  */
 import React, { useState, useEffect } from 'react';
-import { normalizarNit, validarNit } from '../../../utils/nit';
+import nitValidationService from '../../../services/nitValidation.service';
 import {
   Box,
   Typography,
@@ -222,17 +222,20 @@ function AsignacionesTab() {
         const nitsNoEncontrados: string[] = [];
         const nitsValidos = nits.filter((nitInput) => {
           try {
-            // Normalizar el NIT ingresado (calcula DV automáticamente)
-            const nitNormalizado = normalizarNit(nitInput);
+            // Validar formato básico del NIT (ahora usando servicio)
+            if (!nitValidationService.isValidBasicFormat(nitInput)) {
+              nitsNoEncontrados.push(nitInput);
+              return false;
+            }
 
-            // Buscar en proveedores con el NIT normalizado
-            const existe = proveedores.some((p) => p.nit === nitNormalizado);
+            // Buscar en proveedores con el NIT (el backend lo habrá normalizado)
+            const existe = proveedores.some((p) => p.nit === nitInput);
             if (!existe) {
               nitsNoEncontrados.push(nitInput);
             }
-            return existe ? nitNormalizado : false;
+            return existe ? nitInput : false;
           } catch (error) {
-            // Si hay error al normalizar, agregar a rechazados
+            // Si hay error, agregar a rechazados
             nitsNoEncontrados.push(nitInput);
             return false;
           }
@@ -661,33 +664,36 @@ function AsignacionesTab() {
                 // Eliminar duplicados
                 const nitsUnicos = [...new Set(nitsToProcess)];
 
-                // Validar y normalizar cada NIT contra proveedores registrados
+                // Validar y validar cada NIT contra proveedores registrados
                 const nitsNoEncontrados: string[] = [];
                 const nitsDuplicados: string[] = [];
                 const nitsValidos = nitsUnicos.filter((nitInput) => {
                   try {
-                    // Normalizar el NIT ingresado (calcula DV automáticamente)
-                    const nitNormalizado = normalizarNit(nitInput);
+                    // Validar formato básico del NIT
+                    if (!nitValidationService.isValidBasicFormat(nitInput)) {
+                      nitsNoEncontrados.push(nitInput);
+                      return false;
+                    }
 
                     // Verificar si el NIT ya está asignado a este responsable
                     if (bulkResponsableId) {
                       const yaAsignado = asignaciones.some(
-                        (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
+                        (a) => a.nit === nitInput && a.responsable_id === bulkResponsableId && a.activo
                       );
                       if (yaAsignado) {
-                        nitsDuplicados.push(nitNormalizado);
+                        nitsDuplicados.push(nitInput);
                         return false;
                       }
                     }
 
-                    // Buscar en proveedores con el NIT normalizado
-                    const existe = proveedores.some((p) => p.nit === nitNormalizado);
+                    // Buscar en proveedores con el NIT
+                    const existe = proveedores.some((p) => p.nit === nitInput);
                     if (!existe) {
                       nitsNoEncontrados.push(nitInput);
                     }
-                    return existe ? nitNormalizado : false;
+                    return existe ? nitInput : false;
                   } catch (error) {
-                    // Si hay error al normalizar, agregar a rechazados
+                    // Si hay error, agregar a rechazados
                     nitsNoEncontrados.push(nitInput);
                     return false;
                   }
@@ -867,33 +873,36 @@ function AsignacionesTab() {
                           .map((nit) => nit.trim())
                           .filter((nit) => nit.length > 0);
 
-                        // Validar y normalizar NITs
+                        // Validar NITs
                         const nitsNoEncontrados: string[] = [];
                         const nitsDuplicados: string[] = [];
                         const nitsValidos = nits.filter((nitInput) => {
                           try {
-                            // Normalizar el NIT ingresado (calcula DV automáticamente)
-                            const nitNormalizado = normalizarNit(nitInput);
+                            // Validar formato básico del NIT
+                            if (!nitValidationService.isValidBasicFormat(nitInput)) {
+                              nitsNoEncontrados.push(nitInput);
+                              return false;
+                            }
 
                             // Verificar si el NIT ya está asignado a este responsable
                             if (bulkResponsableId) {
                               const yaAsignado = asignaciones.some(
-                                (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
+                                (a) => a.nit === nitInput && a.responsable_id === bulkResponsableId && a.activo
                               );
                               if (yaAsignado) {
-                                nitsDuplicados.push(nitNormalizado);
+                                nitsDuplicados.push(nitInput);
                                 return false;
                               }
                             }
 
-                            // Buscar en proveedores con el NIT normalizado
-                            const existe = proveedores.some((p) => p.nit === nitNormalizado);
+                            // Buscar en proveedores con el NIT
+                            const existe = proveedores.some((p) => p.nit === nitInput);
                             if (!existe) {
                               nitsNoEncontrados.push(nitInput);
                             }
-                            return existe ? nitNormalizado : false;
+                            return existe ? nitInput : false;
                           } catch (error) {
-                            // Si hay error al normalizar, agregar a rechazados
+                            // Si hay error, agregar a rechazados
                             nitsNoEncontrados.push(nitInput);
                             return false;
                           }
