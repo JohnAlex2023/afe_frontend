@@ -30,6 +30,30 @@ const COLORS = {
   rechazada: zentriaColors.naranja.main,       // Naranja - Rechazadas
 };
 
+// Custom legend with black text (so yellow is readable)
+const CustomLegend = (props: any) => {
+  const { payload } = props;
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2, fontSize: 12 }}>
+      {payload.map((entry: any, index: number) => (
+        <Box key={`legend-${index}`} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box
+            sx={{
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              backgroundColor: entry.color,
+            }}
+          />
+          <Typography variant="body2" sx={{ color: '#000', fontWeight: 500 }}>
+            {entry.value}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 export const BarChartFacturas: React.FC<BarChartFacturasProps> = ({ data, loading }) => {
   if (loading) {
     return <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2 }} />;
@@ -111,8 +135,7 @@ export const BarChartFacturas: React.FC<BarChartFacturasProps> = ({ data, loadin
             }}
           />
           <Legend
-            wrapperStyle={{ fontSize: 12 }}
-            iconType="circle"
+            content={<CustomLegend />}
           />
           {/* Stacked bars showing distribution of approval states */}
           <Bar
