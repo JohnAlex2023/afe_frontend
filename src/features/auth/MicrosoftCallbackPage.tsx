@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   Box,
   Card,
@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { CheckCircle, Error as ErrorIcon, Microsoft } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAppDispatch } from '../../app/hooks';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { setCredentials } from './authSlice';
 import { zentriaColors } from '../../theme/colors';
 import { microsoftAuthService } from '../../services/microsoftAuth.service';
@@ -18,6 +18,12 @@ import { microsoftAuthService } from '../../services/microsoftAuth.service';
 /**
  * Microsoft OAuth Callback Page
  * Maneja el callback de Microsoft y completa la autenticación
+ *
+ * PROTECCIONES IMPLEMENTADAS:
+ * 1. Previene doble ejecución por React StrictMode
+ * 2. Limpia URL después de procesar para evitar re-procesamiento
+ * 3. Usa navigate replace para prevenir volver atrás
+ * 4. Detecta sesión activa y redirige automáticamente
  */
 
 function MicrosoftCallbackPage() {
@@ -28,7 +34,29 @@ function MicrosoftCallbackPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
+  // Verificar si ya hay una sesión activa
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+
+  // Ref para prevenir doble ejecución en React StrictMode
+  const hasProcessedCallback = useRef(false);
+
   useEffect(() => {
+    // PROTECCIÓN 1: Si ya hay sesión activa, redirigir inmediatamente
+    // Esto previene intentar procesar el callback después de un "atrás"
+    if (isAuthenticated) {
+      console.log('✅ Sesión activa detectada, redirigiendo...');
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    // PROTECCIÓN 2: Prevenir ejecución múltiple del mismo código OAuth
+    // React 18 StrictMode monta componentes 2 veces en desarrollo
+    // Los códigos OAuth son de un solo uso
+    if (hasProcessedCallback.current) {
+      console.log('⚠️ Callback ya procesado, ignorando llamada duplicada');
+      return;
+    }
+
     const handleCallback = async () => {
       try {
         // Obtener parámetros del callback
@@ -46,25 +74,42 @@ function MicrosoftCallbackPage() {
           throw new Error('Parámetros de autenticación inválidos');
         }
 
+        // MARCAR como procesado ANTES de la llamada async
+        // Esto previene race conditions en StrictMode
+        hasProcessedCallback.current = true;
+
+        console.log('🔐 Procesando callback de Microsoft OAuth...');
+
+        // PROTECCIÓN 3: Limpiar URL inmediatamente para prevenir re-procesamiento
+        // Si el usuario presiona "atrás", no verá el código en la URL
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        );
+
         // Procesar callback
         const authResponse = await microsoftAuthService.handleCallback(code, state);
 
-        // Guardar credenciales en Redux
+        console.log('✅ Autenticación exitosa');
+
+        // Guardar credenciales en Redux (con auth_provider para logout)
         dispatch(
           setCredentials({
             user: authResponse.user,
             token: authResponse.access_token,
+            authProvider: 'microsoft',  // Marcar que es OAuth de Microsoft
           })
         );
 
         setStatus('success');
 
-        // Redirigir al dashboard
+        // PROTECCIÓN 4: Usar replace para evitar que "atrás" vuelva al callback
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
         }, 1500);
       } catch (error: any) {
-        console.error('Error en callback de Microsoft:', error);
+        console.error('❌ Error en callback de Microsoft:', error);
         setStatus('error');
         setErrorMessage(
           error.message || 'Error al procesar la autenticación con Microsoft'
@@ -73,7 +118,7 @@ function MicrosoftCallbackPage() {
     };
 
     handleCallback();
-  }, [searchParams, dispatch, navigate]);
+  }, [searchParams, dispatch, navigate, isAuthenticated]);
 
   return (
     <Box
@@ -82,7 +127,12 @@ function MicrosoftCallbackPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: `linear-gradient(135deg, ${zentriaColors.violeta.dark} 0%, ${zentriaColors.violeta.main} 40%, ${zentriaColors.naranja.main} 100%)`,
+        background: `
+          linear-gradient(135deg, #F5F5F5 0%, #FFFFFF 50%, #F0F0F0 100%),
+          radial-gradient(circle at 20% 80%, rgba(128, 0, 106, 0.02) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(128, 0, 106, 0.01) 0%, transparent 50%)
+        `,
+        backgroundAttachment: 'fixed',
         px: 2,
       }}
     >
