@@ -362,12 +362,12 @@ function MainLayout() {
         </Drawer>
       </Box>
 
-      {/* Main content */}
+      {/* Main content - Professional padding for natural responsive behavior */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2, sm: 3, md: 4 },
+          p: { xs: 2, sm: 3, md: 4, lg: '16px 80px', xl: '16px 120px' },
           width: '100%',
           maxWidth: '100%',
           mt: 8,
@@ -375,7 +375,7 @@ function MainLayout() {
           minHeight: '100vh',
         }}
       >
-        <Box sx={{ maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
+        <Box sx={{ width: '100%' }}>
           {/* Breadcrumb Navigation */}
           <Box sx={{ mb: 3 }}>
             <Breadcrumb showHomeIcon maxLabelLength={35} />
