@@ -273,17 +273,30 @@ function LoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'auto',
-        // Fondo corporativo ZENTRIA - tonos suaves de Violeta opaco y Naranja opaco
+        // Fondo premium con patrón sutil
         background: `
-          linear-gradient(135deg,
-            #F5E6F2 0%,
-            #FFE8E3 25%,
-            #F0D5EB 50%,
-            #FFD4CB 75%,
-            #EAC9E4 100%)
+          linear-gradient(135deg, #FAFBFC 0%, #FFFFFF 50%, #F8F9FA 100%),
+          radial-gradient(circle at 20% 80%, rgba(128, 0, 106, 0.03) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(128, 0, 106, 0.02) 0%, transparent 50%)
         `,
+        backgroundAttachment: 'fixed',
         px: 2,
         py: { xs: 3, md: 2 },
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `
+            linear-gradient(0deg, transparent 24%, rgba(128, 0, 106, 0.015) 25%, rgba(128, 0, 106, 0.015) 26%, transparent 27%, transparent 74%, rgba(128, 0, 106, 0.015) 75%, rgba(128, 0, 106, 0.015) 76%, transparent 77%, transparent),
+            linear-gradient(90deg, transparent 24%, rgba(128, 0, 106, 0.015) 25%, rgba(128, 0, 106, 0.015) 26%, transparent 27%, transparent 74%, rgba(128, 0, 106, 0.015) 75%, rgba(128, 0, 106, 0.015) 76%, transparent 77%, transparent)
+          `,
+          backgroundSize: '50px 50px',
+          pointerEvents: 'none',
+        },
       }}
     >
       {/* Patrón de fondo sutil - versión corporativa ZENTRIA */}
@@ -358,21 +371,23 @@ function LoginPage() {
               borderRadius: '24px',
               width: '100%',
               backdropFilter: 'blur(40px) saturate(200%)',
-              background: 'transparent',
-              border: 'none',
+              background: '#FFFFFF',
+              border: '1px solid rgba(128, 0, 106, 0.1)',
               boxShadow: `
-                0 32px 80px rgba(0, 0, 0, 0.28),
-                0 16px 40px rgba(128, 0, 106, 0.25),
-                0 8px 24px rgba(128, 0, 106, 0.15)
+                0 40px 100px rgba(0, 0, 0, 0.18),
+                0 20px 50px rgba(128, 0, 106, 0.15),
+                0 8px 24px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8)
               `,
               position: 'relative',
               overflow: 'hidden',
               transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               '&:hover': {
                 boxShadow: `
-                  0 40px 100px rgba(0, 0, 0, 0.32),
-                  0 20px 50px rgba(128, 0, 106, 0.3),
-                  0 10px 30px rgba(128, 0, 106, 0.18)
+                  0 50px 120px rgba(0, 0, 0, 0.25),
+                  0 25px 65px rgba(128, 0, 106, 0.2),
+                  0 12px 30px rgba(0, 0, 0, 0.15),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.8)
                 `,
               },
               '&::after': {
@@ -383,10 +398,10 @@ function LoginPage() {
                 right: -2,
                 bottom: -2,
                 borderRadius: '26px',
-                background: 'linear-gradient(135deg, rgba(128, 0, 106, 0.08), rgba(166, 92, 153, 0.08))',
+                background: 'linear-gradient(135deg, rgba(128, 0, 106, 0.12), rgba(166, 92, 153, 0.12))',
                 zIndex: -1,
-                filter: 'blur(15px)',
-                opacity: 0.6,
+                filter: 'blur(20px)',
+                opacity: 0.8,
               },
             }}
           >
@@ -399,23 +414,24 @@ function LoginPage() {
                   minHeight: { md: 380, lg: 400, xl: 420 },
                 }}
               >
-                {/* PANEL IZQUIERDO - BRANDING (más estrecho) */}
+                {/* PANEL IZQUIERDO - BRANDING (más estrecho) - PREMIUM */}
                 <Box
                   sx={{
                     flex: { xs: 'none', md: '0 0 44%', lg: '0 0 44%' },
-                    // Degradado empresarial enriquecido
+                    // Degradado premium refinado
                     background: {
-                      xs: '#80006A',
-                      md: 'linear-gradient(135deg, #7B1FA2 0%, #9C27B0 45%, #BA68C8 100%)',
+                      xs: 'linear-gradient(135deg, #7B1FA2 0%, #80006A 100%)',
+                      md: 'linear-gradient(135deg, #6B0A8E 0%, #7B1FA2 35%, #80006A 70%, #7B1FA2 100%)',
                     },
                     borderRadius: { xs: '24px 24px 0 0', md: '24px 0 0 0' },
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    p: { xs: 1.75, sm: 1.75, md: 1.25, lg: 1.5, xl: 1.75 },
+                    p: { xs: 2, sm: 2, md: 1.5, lg: 2, xl: 2.25 },
                     position: 'relative',
                     overflow: 'hidden',
+                    boxShadow: 'inset 0 -20px 40px rgba(0, 0, 0, 0.15)',
                   }}
                 >
                   <Fade in={true} timeout={1200}>
@@ -472,20 +488,21 @@ function LoginPage() {
                         />
                       </Box>
 
-                      {/* Título con efecto de resplandor premium */}
+                      {/* Título con efecto de resplandor premium - MEJORADO */}
                       <Typography
                         variant="h1"
                         sx={{
-                          fontWeight: 900,
-                          fontFamily: '"Inter", "Segoe UI", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif',
+                          fontWeight: 950,
+                          fontFamily: '"Poppins", "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
                           color: 'white',
-                          mb: { xs: 0.5, sm: 0.75, md: 0.4, lg: 0.5 },
-                          fontSize: { xs: '1.35rem', sm: '1.5rem', md: '1.3rem', lg: '1.5rem' },
-                          letterSpacing: '-0.04em',
-                          textShadow: '0 4px 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2)',
-                          lineHeight: 1.1,
+                          mb: { xs: 0.6, sm: 0.8, md: 0.5, lg: 0.6 },
+                          fontSize: { xs: '1.5rem', sm: '1.65rem', md: '1.45rem', lg: '1.65rem' },
+                          letterSpacing: '-0.05em',
+                          textShadow: '0 6px 25px rgba(0, 0, 0, 0.4), 0 3px 12px rgba(0, 0, 0, 0.25)',
+                          lineHeight: 1.05,
                           position: 'relative',
                           overflow: 'hidden',
+                          fontVariantLigatures: 'common-ligatures',
                           // Efecto de resplandor que recorre el texto una vez
                           '&::after': {
                             content: '""',
@@ -494,8 +511,8 @@ function LoginPage() {
                             left: '-100%',
                             width: '50%',
                             height: '100%',
-                            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent)',
-                            animation: 'glareEffect 2.5s ease-out 0.8s 1',
+                            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent)',
+                            animation: 'glareEffect 3s ease-out 1s 1',
                             transform: 'skewX(-20deg)',
                           },
                           '@keyframes glareEffect': {
@@ -511,17 +528,17 @@ function LoginPage() {
                         ZENTRIA AFE
                       </Typography>
 
-                      {/* Subtítulo corporativo elegante */}
+                      {/* Subtítulo corporativo elegante - PREMIUM */}
                       <Typography
                         variant="h6"
                         sx={{
-                          color: 'rgba(255, 255, 255, 0.95)',
-                          fontFamily: '"Inter", "Segoe UI", "Poppins", sans-serif',
-                          fontWeight: 600,
-                          mb: { xs: 1.25, sm: 1.5, md: 0.75, lg: 1 },
-                          fontSize: { xs: '0.75rem', sm: '0.8rem', md: '0.7rem', lg: '0.75rem' },
+                          color: 'rgba(255, 255, 255, 0.97)',
+                          fontFamily: '"Poppins", "Inter", "Segoe UI", sans-serif',
+                          fontWeight: 700,
+                          mb: { xs: 1.5, sm: 1.75, md: 0.85, lg: 1.1 },
+                          fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.75rem', lg: '0.8rem' },
                           letterSpacing: '-0.01em',
-                          textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                          textShadow: '0 3px 12px rgba(0, 0, 0, 0.25)',
                         }}
                       >
                         Sistema de Aprobación de Facturas
@@ -643,25 +660,25 @@ function LoginPage() {
                         size="large"
                         onClick={handleMicrosoftLogin}
                         disabled={microsoftLoading || isLocked}
-                        startIcon={microsoftLoading ? <CircularProgress size={17} sx={{ color: 'white' }} /> : <MicrosoftIcon />}
+                        startIcon={microsoftLoading ? <CircularProgress size={18} sx={{ color: 'white' }} /> : <MicrosoftIcon />}
                         sx={{
-                          py: { xs: 1.5, sm: 1.75, md: 1, lg: 1.15 },
-                          borderRadius: 2.5,
-                          fontFamily: '"Inter", "Segoe UI", sans-serif',
-                          fontWeight: 700,
-                          fontSize: { xs: '0.95rem', sm: '1rem', md: '0.78rem', lg: '0.82rem' },
+                          py: { xs: 1.75, sm: 1.85, md: 1.15, lg: 1.25 },
+                          borderRadius: 3,
+                          fontFamily: '"Poppins", "Inter", "Segoe UI", sans-serif',
+                          fontWeight: 800,
+                          fontSize: { xs: '0.98rem', sm: '1.05rem', md: '0.82rem', lg: '0.88rem' },
                           textTransform: 'none',
-                          letterSpacing: '-0.01em',
-                          background: '#80006A',  // Violeta principal ZENTRIA
+                          letterSpacing: '-0.02em',
+                          background: 'linear-gradient(135deg, #80006A 0%, #7B1FA2 100%)',
                           color: 'white',
-                          border: 'none',
+                          border: '2px solid rgba(255, 255, 255, 0.2)',
                           boxShadow: `
-                            0 8px 24px rgba(128, 0, 106, 0.4),
-                            0 4px 12px rgba(0, 0, 0, 0.15),
-                            inset 0 1px 1px rgba(255, 255, 255, 0.2),
-                            inset 0 -1px 2px rgba(0, 0, 0, 0.15)
+                            0 12px 40px rgba(128, 0, 106, 0.35),
+                            0 6px 16px rgba(0, 0, 0, 0.15),
+                            inset 0 1px 0 rgba(255, 255, 255, 0.25),
+                            inset 0 -2px 4px rgba(0, 0, 0, 0.1)
                           `,
-                          transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                          transition: 'all 0.45s cubic-bezier(0.25, 0, 0.15, 1)',
                           position: 'relative',
                           overflow: 'hidden',
                           '&::before': {
@@ -672,37 +689,53 @@ function LoginPage() {
                             width: '0',
                             height: '0',
                             borderRadius: '50%',
-                            background: 'rgba(255, 255, 255, 0.15)',
+                            background: 'rgba(255, 255, 255, 0.2)',
                             transform: 'translate(-50%, -50%)',
-                            transition: 'width 0.6s ease, height 0.6s ease',
+                            transition: 'width 0.65s ease, height 0.65s ease',
+                          },
+                          '&::after': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
+                            opacity: 0,
+                            transition: 'opacity 0.4s ease',
                           },
                           '&:hover': {
-                            background: '#660055',  // Violeta más oscuro
-                            transform: 'translateY(-3px) scale(1.01)',
-                            border: '2px solid rgba(255, 255, 255, 0.3)',
+                            background: 'linear-gradient(135deg, #6B0A8E 0%, #80006A 100%)',
+                            transform: 'translateY(-4px)',
+                            border: '2px solid rgba(255, 255, 255, 0.4)',
                             boxShadow: `
-                              0 12px 32px rgba(128, 0, 106, 0.5),
-                              0 6px 16px rgba(0, 0, 0, 0.2),
-                              0 0 20px rgba(128, 0, 106, 0.4),
-                              inset 0 1px 1px rgba(255, 255, 255, 0.25),
-                              inset 0 -1px 2px rgba(0, 0, 0, 0.18)
+                              0 16px 48px rgba(128, 0, 106, 0.45),
+                              0 8px 20px rgba(0, 0, 0, 0.2),
+                              0 0 24px rgba(128, 0, 106, 0.35),
+                              inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                              inset 0 -2px 4px rgba(0, 0, 0, 0.15)
                             `,
                             '&::before': {
-                              width: '300px',
-                              height: '300px',
+                              width: '320px',
+                              height: '320px',
+                            },
+                            '&::after': {
+                              opacity: 1,
                             },
                           },
                           '&:active': {
-                            transform: 'translateY(-1px) scale(1.005)',
+                            transform: 'translateY(-2px) scale(0.98)',
                             boxShadow: `
-                              0 6px 20px rgba(128, 0, 106, 0.4),
-                              inset 0 2px 4px rgba(0, 0, 0, 0.15)
+                              0 8px 24px rgba(128, 0, 106, 0.3),
+                              inset 0 2px 6px rgba(0, 0, 0, 0.15)
                             `,
                           },
                           '&:disabled': {
-                            background: '#D7D7D7',  // Cinza ZENTRIA
-                            color: '#9E9E9E',
+                            background: 'linear-gradient(135deg, #E0E0E0 0%, #D0D0D0 100%)',
+                            color: '#A0A0A0',
                             boxShadow: 'none',
+                            border: '2px solid rgba(0, 0, 0, 0.08)',
+                            cursor: 'not-allowed',
                           },
                         }}
                       >
@@ -820,41 +853,42 @@ function LoginPage() {
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
+                      borderRadius: 2.5,
                       background: `
                         linear-gradient(to bottom,
-                          rgba(255, 255, 255, 0.9),
-                          rgba(252, 252, 252, 0.9))
+                          rgba(255, 255, 255, 0.95),
+                          rgba(253, 253, 253, 0.92))
                       `,
-                      backdropFilter: 'blur(12px) saturate(180%)',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      height: { xs: '52px', sm: '54px', md: '44px', lg: '46px' },
+                      backdropFilter: 'blur(8px) saturate(150%)',
+                      transition: 'all 0.4s cubic-bezier(0.3, 0, 0.2, 1)',
+                      height: { xs: '52px', sm: '54px', md: '46px', lg: '48px' },
                       '& fieldset': {
-                        borderWidth: '2px',
-                        borderColor: 'rgba(0, 0, 0, 0.12)',
-                        transition: 'all 0.3s',
+                        borderWidth: '1.5px',
+                        borderColor: 'rgba(128, 0, 106, 0.15)',
+                        transition: 'all 0.4s cubic-bezier(0.3, 0, 0.2, 1)',
                       },
                       '&:hover': {
                         background: `
                           linear-gradient(to bottom,
-                            rgba(255, 255, 255, 0.98),
-                            rgba(254, 254, 254, 0.98))
+                            rgba(255, 255, 255, 0.99),
+                            rgba(255, 255, 255, 0.96))
                         `,
                         '& fieldset': {
-                          borderColor: '#A65C99',  // Violeta opaco ZENTRIA
+                          borderColor: '#80006A',  // Violeta principal ZENTRIA
                           borderWidth: '2px',
+                          boxShadow: '0 0 0 3px rgba(128, 0, 106, 0.08)',
                         },
                       },
                       '&.Mui-focused': {
                         background: 'rgba(255, 255, 255, 1)',
                         boxShadow: `
-                          0 0 0 4px rgba(33, 150, 243, 0.12),
-                          0 2px 10px rgba(33, 150, 243, 0.08),
-                          inset 0 1px 0 rgba(255, 255, 255, 1)
+                          0 0 0 6px rgba(128, 0, 106, 0.15),
+                          0 8px 24px rgba(128, 0, 106, 0.12),
+                          inset 0 1px 2px rgba(255, 255, 255, 1)
                         `,
                         '& fieldset': {
-                          borderWidth: '2.5px',
-                          borderColor: '#2196F3',  // Azul corporativo para focus
+                          borderWidth: '2px',
+                          borderColor: '#80006A',  // Violeta principal para focus
                         },
                       },
                     },
@@ -935,41 +969,42 @@ function LoginPage() {
                   }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
+                      borderRadius: 2.5,
                       background: `
                         linear-gradient(to bottom,
-                          rgba(255, 255, 255, 0.9),
-                          rgba(252, 252, 252, 0.9))
+                          rgba(255, 255, 255, 0.95),
+                          rgba(253, 253, 253, 0.92))
                       `,
-                      backdropFilter: 'blur(12px) saturate(180%)',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      height: { xs: '52px', sm: '54px', md: '44px', lg: '46px' },
+                      backdropFilter: 'blur(8px) saturate(150%)',
+                      transition: 'all 0.4s cubic-bezier(0.3, 0, 0.2, 1)',
+                      height: { xs: '52px', sm: '54px', md: '46px', lg: '48px' },
                       '& fieldset': {
-                        borderWidth: '2px',
-                        borderColor: 'rgba(0, 0, 0, 0.12)',
-                        transition: 'all 0.3s',
+                        borderWidth: '1.5px',
+                        borderColor: 'rgba(128, 0, 106, 0.15)',
+                        transition: 'all 0.4s cubic-bezier(0.3, 0, 0.2, 1)',
                       },
                       '&:hover': {
                         background: `
                           linear-gradient(to bottom,
-                            rgba(255, 255, 255, 0.98),
-                            rgba(254, 254, 254, 0.98))
+                            rgba(255, 255, 255, 0.99),
+                            rgba(255, 255, 255, 0.96))
                         `,
                         '& fieldset': {
-                          borderColor: '#A65C99',  // Violeta opaco ZENTRIA
+                          borderColor: '#80006A',  // Violeta principal ZENTRIA
                           borderWidth: '2px',
+                          boxShadow: '0 0 0 3px rgba(128, 0, 106, 0.08)',
                         },
                       },
                       '&.Mui-focused': {
                         background: 'rgba(255, 255, 255, 1)',
                         boxShadow: `
-                          0 0 0 4px rgba(33, 150, 243, 0.12),
-                          0 2px 10px rgba(33, 150, 243, 0.08),
-                          inset 0 1px 0 rgba(255, 255, 255, 1)
+                          0 0 0 6px rgba(128, 0, 106, 0.15),
+                          0 8px 24px rgba(128, 0, 106, 0.12),
+                          inset 0 1px 2px rgba(255, 255, 255, 1)
                         `,
                         '& fieldset': {
-                          borderWidth: '2.5px',
-                          borderColor: '#2196F3',  // Azul corporativo para focus
+                          borderWidth: '2px',
+                          borderColor: '#80006A',  // Violeta principal para focus
                         },
                       },
                     },
@@ -1047,7 +1082,7 @@ function LoginPage() {
                   </Link>
                 </Box>
 
-                {/* Botón de inicio de sesión - PRIMARIO con Violeta ZENTRIA #80006A */}
+                {/* Botón de inicio de sesión - PRIMARIO PREMIUM con Violeta ZENTRIA */}
                 <Button
                   fullWidth
                   variant="contained"
@@ -1055,32 +1090,30 @@ function LoginPage() {
                   type="submit"
                   disabled={loading || isLocked}
                   sx={{
-                    mt: 0.5,
-                    py: { xs: 1.5, sm: 1.75, md: 1, lg: 1.15 },
-                    borderRadius: 2.5,
-                    fontFamily: '"Inter", "Segoe UI", sans-serif',
-                    fontWeight: 700,
-                    fontSize: { xs: '0.95rem', sm: '1rem', md: '0.78rem', lg: '0.82rem' },
+                    mt: 0.75,
+                    py: { xs: 1.75, sm: 1.85, md: 1.15, lg: 1.25 },
+                    borderRadius: 3,
+                    fontFamily: '"Poppins", "Inter", "Segoe UI", sans-serif',
+                    fontWeight: 800,
+                    fontSize: { xs: '0.98rem', sm: '1.05rem', md: '0.82rem', lg: '0.88rem' },
                     textTransform: 'none',
-                    letterSpacing: '0.01em',
-                    border: 'none',
+                    letterSpacing: '-0.02em',
+                    border: '2px solid rgba(255, 255, 255, 0.15)',
                     // Violeta principal ZENTRIA (#80006A) - SIEMPRE acción primaria
-                    background: '#80006A',  // SIEMPRE Violeta principal - mismo peso que Microsoft
+                    background: 'linear-gradient(135deg, #80006A 0%, #7B1FA2 100%)',
                     color: '#FFFFFF',
-                    // Sin opacidad reducida - SIEMPRE visible y sólido
-                    // La progresión visual ahora es solo por brillo/sombra, no por color
                     opacity: 1,
-                    // Sombras progresivas - feedback visual sin cambiar el color principal
+                    // Sombras dinámicas - feedback visual premium
                     boxShadow: usuario && password
-                      ? '0 6px 20px rgba(128, 0, 106, 0.5), 0 2px 8px rgba(128, 0, 106, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      ? '0 12px 40px rgba(128, 0, 106, 0.35), 0 6px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
                       : (usuario || password)
-                        ? '0 4px 14px rgba(128, 0, 106, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18)'
-                        : '0 4px 12px rgba(128, 0, 106, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                        ? '0 8px 28px rgba(128, 0, 106, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+                        : '0 6px 20px rgba(128, 0, 106, 0.2), 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
+                    transition: 'all 0.45s cubic-bezier(0.25, 0, 0.15, 1)',
                     position: 'relative',
                     overflow: 'hidden',
                     cursor: 'pointer',
-                    // Efecto de brillo progresivo - más sutil pero efectivo
+                    // Efecto de brillo progresivo premium
                     '&::before': {
                       content: '""',
                       position: 'absolute',
@@ -1088,40 +1121,41 @@ function LoginPage() {
                       left: 0,
                       right: 0,
                       bottom: 0,
-                      background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1))',
-                      opacity: usuario && password ? 1 : (usuario || password) ? 0.7 : 0.5,
-                      transition: 'opacity 0.4s ease',
+                      background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 50%, rgba(0,0,0,0.05) 100%)',
+                      opacity: usuario && password ? 1 : (usuario || password) ? 0.75 : 0.5,
+                      transition: 'opacity 0.45s ease',
                     },
                     // Animación de pulso sutil cuando está listo
                     animation: usuario && password
-                      ? 'readyPulse 2.5s ease-in-out infinite'
+                      ? 'readyPulse 2.8s ease-in-out infinite'
                       : 'none',
                     '@keyframes readyPulse': {
                       '0%, 100%': {
-                        boxShadow: '0 6px 20px rgba(128, 0, 106, 0.5), 0 2px 8px rgba(128, 0, 106, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                        boxShadow: '0 12px 40px rgba(128, 0, 106, 0.35), 0 6px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
                       },
                       '50%': {
-                        boxShadow: '0 8px 26px rgba(128, 0, 106, 0.6), 0 3px 10px rgba(128, 0, 106, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+                        boxShadow: '0 14px 48px rgba(128, 0, 106, 0.45), 0 8px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
                       },
                     },
                     '&:hover': {
-                      background: '#660055',  // SIEMPRE hover más oscuro - consistente
-                      transform: 'translateY(-2px)',
+                      background: 'linear-gradient(135deg, #6B0A8E 0%, #80006A 100%)',
+                      transform: 'translateY(-4px)',
                       border: '2px solid rgba(255, 255, 255, 0.3)',
-                      boxShadow: '0 10px 32px rgba(128, 0, 106, 0.55), 0 4px 12px rgba(128, 0, 106, 0.35), 0 0 20px rgba(128, 0, 106, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
+                      boxShadow: '0 16px 48px rgba(128, 0, 106, 0.45), 0 8px 20px rgba(0, 0, 0, 0.2), 0 0 24px rgba(128, 0, 106, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
                       '&::before': {
                         opacity: 1,
                       },
                     },
                     '&:active': {
-                      transform: 'translateY(-1px) scale(0.99)',
-                      boxShadow: '0 4px 14px rgba(128, 0, 106, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.15)',
+                      transform: 'translateY(-2px) scale(0.98)',
+                      boxShadow: '0 8px 24px rgba(128, 0, 106, 0.3), inset 0 2px 6px rgba(0, 0, 0, 0.15)',
                     },
                     '&:disabled': {
-                      background: '#D7D7D7',  // Cinza ZENTRIA para disabled
-                      color: '#9E9E9E',
-                      opacity: 0.6,
+                      background: 'linear-gradient(135deg, #E0E0E0 0%, #D0D0D0 100%)',
+                      color: '#A0A0A0',
+                      opacity: 0.7,
                       boxShadow: 'none',
+                      border: '2px solid rgba(0, 0, 0, 0.08)',
                       cursor: 'not-allowed',
                       animation: 'none',
                     },
@@ -1129,8 +1163,8 @@ function LoginPage() {
                   onClick={handleLogin}
                 >
                   {loading ? (
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <CircularProgress size={22} sx={{ color: 'white' }} />
+                    <Box display="flex" alignItems="center" gap={1.5}>
+                      <CircularProgress size={20} sx={{ color: 'white' }} />
                       <span>Verificando credenciales...</span>
                     </Box>
                   ) : isLocked ? (
@@ -1175,20 +1209,21 @@ function LoginPage() {
               </Box>
               {/* Fin Layout Horizontal */}
 
-              {/* Footer corporativo premium - Al pie de la tarjeta completa */}
+              {/* Footer corporativo premium MEJORADO - Al pie de la tarjeta completa */}
               <Box
                 textAlign="center"
                 sx={{
                   background: `
                     linear-gradient(
-                      rgba(255, 255, 255, 0.98),
-                      rgba(255, 255, 255, 0.96)
+                      180deg,
+                      rgba(255, 255, 255, 0.99),
+                      rgba(252, 252, 253, 0.97)
                     )
                   `,
                   borderRadius: { xs: '0 0 24px 24px', lg: '0 0 24px 24px' },
-                  px: { xs: 1.5, sm: 2, md: 1.25, lg: 1.5, xl: 2 },
-                  pb: { xs: 1.25, sm: 1.5, md: 0.85 },
-                  pt: { xs: 1.25, sm: 1.25, md: 0.85 },
+                  px: { xs: 1.75, sm: 2.25, md: 1.5, lg: 2, xl: 2.25 },
+                  pb: { xs: 1.5, sm: 1.75, md: 1.1 },
+                  pt: { xs: 1.5, sm: 1.75, md: 1 },
                 }}
               >
                 <Divider
