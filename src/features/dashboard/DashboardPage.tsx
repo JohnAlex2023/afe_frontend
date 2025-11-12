@@ -257,9 +257,16 @@ function DashboardPage() {
 
   return (
     <Box>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Box>
+      {/* Header - Responsive: Vertical on mobile, Horizontal on desktop */}
+      <Box
+        display="flex"
+        flexDirection={{ xs: 'column', md: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        gap={{ xs: 3, md: 2 }}
+        mb={{ xs: 3, md: 4 }}
+      >
+        <Box flex={1}>
           <Typography
             variant="h4"
             fontWeight={800}
@@ -268,26 +275,35 @@ function DashboardPage() {
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
+              fontSize: { xs: '1.75rem', md: '2.125rem' },
             }}
           >
             Dashboard de Control
           </Typography>
-          <Typography variant="body2" color="text.secondary" mt={0.5}>
+          <Typography variant="body2" color="text.secondary" mt={1}>
             Gestión completa de facturas • Sistema de aprobación
           </Typography>
         </Box>
-        <Box display="flex" gap={2} alignItems="center">
+        <Box
+          display="flex"
+          flexDirection={{ xs: 'column', sm: 'row' }}
+          gap={2}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+          width={{ xs: '100%', sm: 'auto' }}
+        >
           <Button
             variant="outlined"
             startIcon={loading ? <CircularProgress size={18} /> : <Refresh />}
             onClick={loadData}
             disabled={loading}
+            fullWidth={{ xs: true, sm: false }}
             sx={{
               borderColor: zentriaColors.violeta.main + (loading ? '40' : ''),
               color: zentriaColors.violeta.main,
               fontWeight: 600,
-              minWidth: 120,
+              minWidth: { xs: 'auto', sm: 120 },
               transition: 'all 0.2s ease',
+              py: { xs: 1.2, sm: 1 },
               '&:hover': {
                 borderColor: zentriaColors.violeta.main,
                 bgcolor: zentriaColors.violeta.main + '08',
@@ -305,12 +321,14 @@ function DashboardPage() {
               variant="contained"
               startIcon={<Add />}
               onClick={() => openDialogWith('create')}
+              fullWidth={{ xs: true, sm: false }}
               sx={{
                 background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
                 boxShadow: '0 4px 14px rgba(128, 0, 106, 0.25)',
                 fontWeight: 700,
                 textTransform: 'none',
-                px: 3,
+                px: { xs: 2, sm: 3 },
+                py: { xs: 1.2, sm: 1 },
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': {
                   transform: 'translateY(-2px)',
