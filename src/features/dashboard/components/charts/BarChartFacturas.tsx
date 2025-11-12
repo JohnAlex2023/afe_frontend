@@ -54,6 +54,51 @@ const CustomLegend = (props: any) => {
   );
 };
 
+// Custom tooltip with black text (ensures all colors readable, especially yellow)
+const CustomTooltip = (props: any) => {
+  const { active, payload } = props;
+  if (active && payload && payload.length) {
+    return (
+      <Box
+        sx={{
+          backgroundColor: '#fff',
+          border: '1px solid #e0e0e0',
+          borderRadius: 2,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          p: 1.5,
+        }}
+      >
+        {payload.map((entry: any, index: number) => (
+          <Box
+            key={`tooltip-${index}`}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.75,
+              fontSize: 12,
+              mb: index < payload.length - 1 ? 0.5 : 0,
+            }}
+          >
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: entry.color,
+                flexShrink: 0,
+              }}
+            />
+            <Typography variant="body2" sx={{ color: '#000', fontWeight: 500 }}>
+              {entry.name}: <strong>{entry.value}</strong>
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    );
+  }
+  return null;
+};
+
 export const BarChartFacturas: React.FC<BarChartFacturasProps> = ({ data, loading }) => {
   if (loading) {
     return <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2 }} />;
@@ -126,14 +171,7 @@ export const BarChartFacturas: React.FC<BarChartFacturasProps> = ({ data, loadin
             tickLine={false}
             axisLine={false}
           />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: '#fff',
-              border: '1px solid #e0e0e0',
-              borderRadius: 8,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            }}
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Legend
             content={<CustomLegend />}
           />
