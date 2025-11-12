@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../../services/api';
 
 // Types for monthly summary statistics
+// CORRECTED: Only REAL approval states (no "pendiente" which doesn't exist in backend)
 export interface MonthlyStats {
   periodo: string; // "2024-10" format
   periodo_display: string; // "Oct 2024" format
@@ -15,7 +16,6 @@ export interface MonthlyStats {
   subtotal: number;
   iva: number;
   facturas_por_estado: {
-    pendiente: number;
     en_revision: number;
     aprobada: number;
     aprobada_auto: number;
@@ -71,20 +71,15 @@ export const useDashboardStats = (): UseDashboardStatsReturn => {
     setError('');
 
     try {
-      // Fetch monthly summary (all available periods)
+      // CORRECTED: Fetch monthly summary WITH STATE BREAKDOWN (new endpoint)
       const monthlyResponse = await apiClient.get<any[]>(
-        '/facturas/periodos/resumen'
+        '/facturas/periodos/resumen-detallado'
       );
 
-      // Fetch workflow dashboard statistics
-      const workflowResponse = await apiClient.get<WorkflowStats>(
-        '/workflow/dashboard'
-      );
-
-      // Fetch comparison statistics
-      const comparisonResponse = await apiClient.get<ComparisonStats>(
-        '/workflow/estadisticas-comparacion'
-      );
+      // NOTE: These endpoints don't exist yet - will be implemented in Phase 2
+      // For now, initialize with null/empty data
+      const workflowResponse = { data: null };
+      const comparisonResponse = { data: null };
 
       // Transform monthly data to include display format
       const transformedMonthly = ((monthlyResponse.data || []) as any[])
@@ -110,8 +105,8 @@ export const useDashboardStats = (): UseDashboardStatsReturn => {
             monto_total: item.monto_total || 0,
             subtotal: item.subtotal_total || item.subtotal || 0,
             iva: item.iva_total || item.iva || 0,
+            // CORRECTED: Only REAL approval states (no "pendiente")
             facturas_por_estado: item.facturas_por_estado || {
-              pendiente: 0,
               en_revision: 0,
               aprobada: 0,
               aprobada_auto: 0,
