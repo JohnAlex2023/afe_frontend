@@ -22,6 +22,14 @@ interface BarChartFacturasProps {
   loading?: boolean;
 }
 
+// Color palette for APPROVAL FLOW states only
+const COLORS = {
+  en_revision: '#FFF280',                      // Amarillo - Requiere revisión
+  aprobada_auto: '#45E3C9',                    // Cyan - Aprobadas automáticamente
+  aprobada: zentriaColors.verde.main,          // Verde - Aprobadas manualmente
+  rechazada: zentriaColors.naranja.main,       // Naranja - Rechazadas
+};
+
 export const BarChartFacturas: React.FC<BarChartFacturasProps> = ({ data, loading }) => {
   if (loading) {
     return <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2 }} />;
@@ -45,13 +53,14 @@ export const BarChartFacturas: React.FC<BarChartFacturasProps> = ({ data, loadin
   }
 
   // Transform data for stacked bar chart
+  // CORRECTED: Only APPROVAL flow states (4 estados)
+  // Removed: 'Pendientes' (doesn't exist), 'Pagada' (belongs to Accounting module)
   const chartData = data.map((item) => ({
     periodo: item.periodo_display,
-    Pendientes: item.facturas_por_estado?.pendiente || 0,
     'En Revisión': item.facturas_por_estado?.en_revision || 0,
     'Aprobadas Auto': item.facturas_por_estado?.aprobada_auto || 0,
-    Aprobadas: item.facturas_por_estado?.aprobada || 0,
-    Rechazadas: item.facturas_por_estado?.rechazada || 0,
+    'Aprobadas': item.facturas_por_estado?.aprobada || 0,
+    'Rechazadas': item.facturas_por_estado?.rechazada || 0,
     Total: item.total_facturas || 0,
   }));
 
@@ -105,10 +114,27 @@ export const BarChartFacturas: React.FC<BarChartFacturasProps> = ({ data, loadin
             wrapperStyle={{ fontSize: 12 }}
             iconType="circle"
           />
+          {/* Stacked bars showing distribution of approval states */}
           <Bar
-            dataKey="Total"
-            fill={zentriaColors.violeta.main}
+            dataKey="En Revisión"
+            stackId="a"
+            fill={COLORS.en_revision}
             radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            dataKey="Aprobadas Auto"
+            stackId="a"
+            fill={COLORS.aprobada_auto}
+          />
+          <Bar
+            dataKey="Aprobadas"
+            stackId="a"
+            fill={COLORS.aprobada}
+          />
+          <Bar
+            dataKey="Rechazadas"
+            stackId="a"
+            fill={COLORS.rechazada}
           />
         </BarChart>
       </ResponsiveContainer>
