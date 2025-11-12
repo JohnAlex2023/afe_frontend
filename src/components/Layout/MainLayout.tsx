@@ -31,6 +31,7 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { logout } from '../../features/auth/authSlice';
 import { zentriaColors } from '../../theme/colors';
 import { getRoleLabel } from '../../constants/roles';
+import { Breadcrumb } from '../Breadcrumb';
 
 const DRAWER_WIDTH = 260;
 
@@ -375,6 +376,12 @@ function MainLayout() {
         }}
       >
         <Box sx={{ maxWidth: '1600px', margin: '0 auto', width: '100%' }}>
+          {/* Breadcrumb Navigation */}
+          <Box sx={{ mb: 3 }}>
+            <Breadcrumb showHomeIcon maxLabelLength={35} />
+          </Box>
+
+          {/* Page Content */}
           <Outlet />
         </Box>
       </Box>
