@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -64,6 +65,7 @@ function FacturasPage() {
   const { pendientes = [], loading = false } = facturasState || {};
   const user = useAppSelector((state) => state.auth.user);
   const { showNotification } = useNotification();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Estados de modales y acciones
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null);
@@ -256,6 +258,19 @@ function FacturasPage() {
       showNotification('Error al cargar detalles de la factura', 'error');
     }
   };
+
+  // Manejo de parámetro de query para abrir factura directamente desde email
+  useEffect(() => {
+    const facturaId = searchParams.get('id');
+    if (facturaId && !detailModalOpen) {
+      // Crear un workflow mínimo para pasar a handleViewDetails
+      const minimalWorkflow = { factura_id: parseInt(facturaId, 10) } as Workflow;
+      handleViewDetails(minimalWorkflow);
+
+      // Limpiar el parámetro de la URL para evitar reaperturas innecesarias
+      setSearchParams({});
+    }
+  }, [searchParams, detailModalOpen, handleViewDetails, setSearchParams]);
 
   const handleOpenApproval = (workflow: Workflow) => {
     setSelectedWorkflow(workflow);
