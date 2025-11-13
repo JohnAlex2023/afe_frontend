@@ -49,6 +49,8 @@ function DashboardPage() {
   const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [selectedFacturaForAction, setSelectedFacturaForAction] = useState<Factura | null>(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  const [rejectionLoading, setRejectionLoading] = useState(false);
 
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -170,6 +172,7 @@ function DashboardPage() {
   const handleConfirmApproval = async (observaciones?: string) => {
     if (!selectedFacturaForAction) return;
 
+    setApprovalLoading(true);
     try {
       // IMPORTANTE: Enviar el nombre completo del usuario, no el username
       const approverName = typeof user?.nombre === 'string' && user.nombre.trim() ? user.nombre : user?.usuario || '';
@@ -185,12 +188,15 @@ function DashboardPage() {
       await loadData();
     } catch (err: any) {
       setActionError(err.response?.data?.detail || 'Error al aprobar factura');
+    } finally {
+      setApprovalLoading(false);
     }
   };
 
   const handleConfirmRejection = async (motivo: string, detalle?: string) => {
     if (!selectedFacturaForAction) return;
 
+    setRejectionLoading(true);
     try {
       // IMPORTANTE: Enviar el nombre completo del usuario, no el username
       const rejectorName = typeof user?.nombre === 'string' && user.nombre.trim() ? user.nombre : user?.usuario || '';
@@ -206,6 +212,8 @@ function DashboardPage() {
       await loadData();
     } catch (err: any) {
       setActionError(err.response?.data?.detail || 'Error al rechazar factura');
+    } finally {
+      setRejectionLoading(false);
     }
   };
 
@@ -278,10 +286,10 @@ function DashboardPage() {
               fontSize: { xs: '1.75rem', md: '2.125rem' },
             }}
           >
-            Dashboard de Control
+            Control de Facturas 
           </Typography>
           <Typography variant="body2" color="text.secondary" mt={1}>
-            Gestión completa de facturas • Sistema de aprobación
+            • Sistema de aprobación
           </Typography>
         </Box>
         <Box
@@ -432,6 +440,7 @@ function DashboardPage() {
         onClose={() => setApprovalDialogOpen(false)}
         facturaNumero={selectedFacturaForAction?.numero_factura || ''}
         onConfirm={handleConfirmApproval}
+        loading={approvalLoading}
       />
 
       {/* Rejection Dialog */}
@@ -440,6 +449,7 @@ function DashboardPage() {
         onClose={() => setRejectionDialogOpen(false)}
         facturaNumero={selectedFacturaForAction?.numero_factura || ''}
         onConfirm={handleConfirmRejection}
+        loading={rejectionLoading}
       />
 
       {/* Delete Confirmation Dialog */}
