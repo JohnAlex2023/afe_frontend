@@ -31,9 +31,9 @@ const themeOptions = {
       100: '#B3EDE5',
     },
     warning: {
-      main: '#f59e0b',           // Amber 500 - más visible y profesional que el amarillo pastel
-      light: '#fbbf24',          // Amber 400
-      dark: '#d97706',           // Amber 600
+      main: '#FFF280',           // Amarillo claro corporativo
+      light: '#FFFABF',          // Amarillo más claro
+      dark: '#CCC266',           // Amarillo más oscuro
       contrastText: '#000000',   // Texto negro para mejor contraste
     },
     error: {

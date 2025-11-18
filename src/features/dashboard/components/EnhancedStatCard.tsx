@@ -15,6 +15,8 @@ interface EnhancedStatCardProps {
   border: string;
   icon: React.ReactElement;
   onClick?: () => void;
+  textColor?: string;
+  iconColor?: string;
 }
 
 export const EnhancedStatCard: React.FC<EnhancedStatCardProps> = ({
@@ -26,6 +28,8 @@ export const EnhancedStatCard: React.FC<EnhancedStatCardProps> = ({
   border,
   icon,
   onClick,
+  textColor,
+  iconColor,
 }) => {
   // Calcular tendencia
   const trend = previousValue && previousValue !== 0
@@ -94,11 +98,11 @@ export const EnhancedStatCard: React.FC<EnhancedStatCardProps> = ({
             <Typography
               variant="h4"
               fontWeight={800}
-              color={color}
               sx={{
                 mt: 0.5,
                 lineHeight: 1,
                 fontFeatureSettings: '"tnum"', // Tabular numbers
+                color: textColor || color,
               }}
             >
               {value.toLocaleString('es-CO')}
@@ -126,6 +130,7 @@ export const EnhancedStatCard: React.FC<EnhancedStatCardProps> = ({
               width: 56,
               height: 56,
               transition: 'transform 0.3s ease',
+              color: iconColor,
               '&:hover': onClick ? {
                 transform: 'rotate(10deg) scale(1.1)',
               } : {},

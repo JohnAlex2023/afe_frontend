@@ -29,10 +29,12 @@ interface StatCard {
   border: string;
   icon: React.ReactElement;
   filter: string;
+  textColor?: string;
+  iconColor?: string;
 }
 
 export const StatsCards: React.FC<StatsCardsProps> = ({ stats, previousStats, onCardClick }) => {
-  // Paleta de colores mejorada y sincronizada según mejores prácticas UX/UI
+  // Paleta de colores y configuración de tarjetas
   const statsConfig: StatCard[] = [
     {
       key: 'total',
@@ -48,12 +50,14 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats, previousStats, on
       key: 'en_revision',
       label: 'EN REVISIÓN',
       value: stats.en_revision,
-      // Amarillo corporativo para estados pendientes/en revisión
-      color: '#f59e0b', // Amber 500 - más visible que el amarillo pastel
-      bgGradient: 'linear-gradient(135deg, #f59e0b10, #f59e0b05)',
-      border: '1px solid #f59e0b30',
+      // Amarillo para estados pendientes/en revisión
+      color: '#FFF280', // Amarillo claro
+      bgGradient: 'linear-gradient(135deg, #f8eba939, #f6e79e39)',
+      border: '1px solid #fbd20884',
       icon: <RemoveRedEye />,
       filter: 'en_revision',
+      textColor: '#000000', // Texto negro
+      iconColor: '#000000', // Ícono negro
     },
     {
       key: 'aprobadas',
@@ -70,8 +74,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats, previousStats, on
       key: 'aprobadas_auto',
       label: 'APROBADAS AUTO',
       value: stats.aprobadas_auto,
-      // Verde más claro (cyan) para aprobados automáticos - diferenciación visual
-      color: '#45E3C9', // zentriaColors.verde.light - más claro que aprobadas manuales
+      // Verde más claro (cyan) para aprobados automáticos 
+      color: '#45E3C9', // zentriaColors.verde.light 
       bgGradient: 'linear-gradient(135deg, #45E3C910, #45E3C905)',
       border: '1px solid #45E3C930',
       icon: <SmartToy />,
@@ -81,7 +85,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats, previousStats, on
       key: 'rechazadas',
       label: 'RECHAZADAS',
       value: stats.rechazadas,
-      // Naranja corporativo para rechazados - alerta sin ser demasiado agresivo
+      // Naranja 
       color: zentriaColors.naranja.main, // #FF5F3F
       bgGradient: `linear-gradient(135deg, ${zentriaColors.naranja.main}10, ${zentriaColors.naranja.main}05)`,
       border: `1px solid ${zentriaColors.naranja.main}30`,
@@ -102,6 +106,8 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ stats, previousStats, on
             bgGradient={stat.bgGradient}
             border={stat.border}
             icon={stat.icon}
+            textColor={stat.textColor}
+            iconColor={stat.iconColor}
             onClick={onCardClick ? () => onCardClick(stat.filter) : undefined}
           />
         </Grid>

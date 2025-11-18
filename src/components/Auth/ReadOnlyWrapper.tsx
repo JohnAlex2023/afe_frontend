@@ -2,7 +2,6 @@
  * ReadOnlyWrapper - HOC para modo solo lectura
  * Envuelve cualquier componente y oculta botones de acción para viewers
  *
- * Enfoque empresarial: CSS + clases específicas
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -19,11 +18,6 @@ interface ReadOnlyWrapperProps {
 
 /**
  * Wrapper que desactiva interacciones para usuarios sin permisos
- *
- * Uso:
- * <ReadOnlyWrapper requiredPermission="canManageProviders">
- *   <ProveedoresTab />
- * </ReadOnlyWrapper>
  */
 export const ReadOnlyWrapper: React.FC<ReadOnlyWrapperProps> = ({
   children,
