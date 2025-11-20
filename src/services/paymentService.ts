@@ -131,7 +131,7 @@ class PaymentService {
       for (const factura of facturas) {
         if (factura.pagos && factura.pagos.length > 0) {
           const existeReferencia = factura.pagos.some(
-            pago => pago.referencia_pago.toUpperCase() === referencia.toUpperCase()
+            (pago: Pago) => pago.referencia_pago.toUpperCase() === referencia.toUpperCase()
           );
           if (existeReferencia) {
             return false; // Referencia ya existe
