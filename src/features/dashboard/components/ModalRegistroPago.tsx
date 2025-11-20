@@ -92,7 +92,6 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
     resolver: zodResolver(PagoSchema),
     defaultValues: {
       monto_pagado: pendientePagar, // Valor pendiente por defecto
-      referencia_pago: '',
       metodo_pago: MetodoPago.TRANSFERENCIA
     }
   });
@@ -128,7 +127,7 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
       await registrarPago(facturaId, pagoRequest);
 
       // Éxito - Ejecutar callback
-      const successMessage = `Pago de $${data.monto_pagado} registrado exitosamente. Referencia: ${data.referencia_pago.toUpperCase()}`;
+      const successMessage = `Pago de $${data.monto_pagado} registrado exitosamente`;
 
       // Soportar callbacks asincronos (para refresh de datos)
       const result = onPagoSuccess?.(successMessage);
