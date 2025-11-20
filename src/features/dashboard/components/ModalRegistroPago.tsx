@@ -5,11 +5,11 @@
  * Valida datos, maneja errores y muestra confirmación de éxito.
  *
  * Funcionalidades:
- * - Formulario con campos: monto, referencia, método de pago
+ * - Formulario con campos: monto, método de pago
  * - Validación client-side y server-side
- * - Prevención de referencias duplicadas
  * - Mensaje de error detallado
  * - Toast de éxito
+ * - Actualización automática del estado de la factura
  */
 
 import React, { useState, useEffect } from 'react';
@@ -47,14 +47,6 @@ const PagoSchema = z.object({
       (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
       'El monto debe ser mayor a 0'
     ),
-  referencia_pago: z
-    .string()
-    .min(3, 'La referencia debe tener al menos 3 caracteres')
-    .max(100, 'La referencia no puede exceder 100 caracteres')
-    .regex(
-      /^[A-Z0-9\-_]+$/i,
-      'Solo letras, números, guiones y guiones bajos'
-    ),
   metodo_pago: z.string().optional()
 });
 
@@ -87,8 +79,6 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
 }) => {
   const { registrarPago, isLoading, error, limpiarError } = usePayment();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [validandoReferencia, setValidandoReferencia] = useState(false);
-  const [referenciaExiste, setReferenciaExiste] = useState(false);
 
   const {
     control,
@@ -108,7 +98,6 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
   });
 
   const montoIngresado = watch('monto_pagado');
-  const referenciaIngresada = watch('referencia_pago');
 
   // Validar que el monto no exceda el pendiente
   useEffect(() => {
@@ -125,14 +114,6 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
     }
   }, [montoIngresado, pendientePagar, setFormError]);
 
-  // Validar referencia única
-  useEffect(() => {
-    if (referenciaIngresada && referenciaIngresada.length >= 3) {
-      // Aquí se podría hacer validación async si el backend lo permite
-      // Por ahora solo validamos formato
-      setReferenciaExiste(false);
-    }
-  }, [referenciaIngresada]);
 
   const onSubmit = async (data: PagoFormData) => {
     setServerError(null);
@@ -140,7 +121,7 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
     try {
       const pagoRequest: PagoRequest = {
         monto_pagado: parseFloat(data.monto_pagado),
-        referencia_pago: data.referencia_pago.toUpperCase(),
+        referencia_pago: `AUTO-${Date.now()}`, // Referencia auto-generada
         metodo_pago: data.metodo_pago || 'otro'
       };
 
@@ -262,38 +243,6 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
               )}
             </Grid>
 
-            {/* Referencia de Pago */}
-            <Grid item xs={12}>
-              <Controller
-                name="referencia_pago"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label="Referencia de Pago"
-                    fullWidth
-                    variant="outlined"
-                    placeholder="CHO-001, TRF-ABC, ETC"
-                    error={!!errors.referencia_pago || referenciaExiste}
-                    helperText={
-                      errors.referencia_pago?.message ||
-                      (referenciaExiste ? 'Esta referencia ya existe' : 'Ej: CHO-001 (cheque), TRF-ABC123 (transferencia), EFE-001 (efectivo)')
-                    }
-                    disabled={isLoading}
-                    inputProps={{
-                      maxLength: 100,
-                      style: { textTransform: 'uppercase' }
-                    }}
-                  />
-                )}
-              />
-              {validandoReferencia && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-                  <CircularProgress size={16} />
-                  <Typography variant="caption">Validando referencia...</Typography>
-                </Box>
-              )}
-            </Grid>
 
             {/* Método de Pago */}
             <Grid item xs={12}>
@@ -324,9 +273,8 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
             <Grid item xs={12}>
               <Alert severity="info">
                 <Typography variant="caption">
-                  <strong>Referencia de Pago:</strong> Código único que identifica este pago. Puede ser el número de cheque, número de transacción bancaria, o un código interno.
-                  <br />
-                  <strong>Ejemplos:</strong> CHO-001 (cheque #1), TRF-ABC (transacción ABC), EFE-001 (efectivo)
+                  <strong>Nota:</strong> Al registrar el pago, el estado de la factura se actualizará automáticamente en el dashboard.
+                  La referencia se genera automáticamente para este registro.
                 </Typography>
               </Alert>
             </Grid>
@@ -344,7 +292,7 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
         </Button>
         <Button
           onClick={handleSubmit(onSubmit)}
-          disabled={isLoading || !!referenciaExiste}
+          disabled={isLoading}
           variant="contained"
           sx={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
