@@ -64,11 +64,12 @@ interface ModalRegistroPagoProps {
   isOpen: boolean;
   onClose: () => void;
   facturaId: number;
-  facturaNumero: string;
+  facturaNumero?: string;
   totalFactura: string;
   totalPagado: string;
   pendientePagar: string;
-  onPagoSuccess?: (mensaje: string) => void;
+  factura?: Factura;
+  onPagoSuccess?: (mensaje?: string) => void | Promise<void>;
   onError?: (error: string) => void;
 }
 
@@ -80,6 +81,7 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
   totalFactura,
   totalPagado,
   pendientePagar,
+  factura,
   onPagoSuccess,
   onError
 }) => {
@@ -144,10 +146,14 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
 
       await registrarPago(facturaId, pagoRequest);
 
-      // Éxito
-      onPagoSuccess?.(
-        `Pago de $${data.monto_pagado} registrado exitosamente. Referencia: ${data.referencia_pago.toUpperCase()}`
-      );
+      // Éxito - Ejecutar callback
+      const successMessage = `Pago de $${data.monto_pagado} registrado exitosamente. Referencia: ${data.referencia_pago.toUpperCase()}`;
+
+      // Soportar callbacks asincronos (para refresh de datos)
+      const result = onPagoSuccess?.(successMessage);
+      if (result instanceof Promise) {
+        await result;
+      }
 
       reset();
       onClose();

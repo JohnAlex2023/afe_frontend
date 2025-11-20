@@ -402,6 +402,7 @@ function DashboardPage() {
         onOpenDialog={openDialogWith}
         onMenuClick={handleMenuClick}
         isAdmin={user?.rol === 'admin' || user?.rol === 'responsable'}
+        onRefreshData={loadData}
       />
 
       {/* Actions Menu */}

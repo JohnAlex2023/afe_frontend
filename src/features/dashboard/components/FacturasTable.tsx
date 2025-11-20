@@ -1,5 +1,6 @@
 /**
  * Facturas table component with pagination
+ * FASE 2: Integración de sistema de pagos con control por rol
  */
 
 import {
@@ -18,11 +19,15 @@ import {
   Box,
   Button,
 } from '@mui/material';
-import { Visibility, Edit, MoreVert, Description, Add } from '@mui/icons-material';
+import { Visibility, Edit, MoreVert, Description, Add, AddCircle, History } from '@mui/icons-material';
 import { zentriaColors } from '../../../theme/colors';
 import { actionButtonStyles, tooltipProps } from '../../../theme/buttonStyles';
 import type { Factura, DialogMode } from '../types';
 import { formatCurrency, formatDate, getEstadoColor, getEstadoLabel } from '../utils';
+import { usePaymentPermissions } from '../hooks/usePaymentPermissions';
+import { usePaymentModal } from '../hooks/usePaymentModal';
+import { ModalRegistroPago } from './ModalRegistroPago';
+import { ModalHistorialPagos } from './ModalHistorialPagos';
 
 interface FacturasTableProps {
   facturas: Factura[];
@@ -33,6 +38,7 @@ interface FacturasTableProps {
   onOpenDialog: (mode: DialogMode, factura: Factura) => void;
   onMenuClick: (event: React.MouseEvent<HTMLElement>, factura: Factura) => void;
   isAdmin?: boolean;
+  onRefreshData?: () => Promise<void>;
 }
 
 export const FacturasTable: React.FC<FacturasTableProps> = ({
@@ -44,8 +50,27 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
   onOpenDialog,
   onMenuClick,
   isAdmin = false,
+  onRefreshData,
 }) => {
+  // FASE 2: Hooks de pagos
+  const { canViewPayments, isCounterOrAdmin } = usePaymentPermissions();
+  const {
+    registroModalOpen,
+    openRegistroModal,
+    closeRegistroModal,
+    historialModalOpen,
+    openHistorialModal,
+    closeHistorialModal,
+    selectedFacturaForPayment,
+    selectedFacturaIdForHistory,
+  } = usePaymentModal();
+
   const paginatedFacturas = facturas.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  // Calcular número de columnas dinámicamente
+  const baseColumns = 9; // Columnas actuales
+  const paymentColumns = canViewPayments ? 2 : 0; // Pagado + Pendiente
+  const totalColumns = baseColumns + paymentColumns;
 
   return (
     <Card>
@@ -155,6 +180,37 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
               >
                 Acción Por
               </TableCell>
+
+              {/* FASE 2: Nuevas columnas de pago - Solo si tiene permisos */}
+              {canViewPayments && (
+                <>
+                  <TableCell
+                    sx={{
+                      color: 'text.primary',
+                      fontWeight: 700,
+                      fontSize: '0.8125rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      py: 2,
+                    }}
+                  >
+                    Pagado
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: 'text.primary',
+                      fontWeight: 700,
+                      fontSize: '0.8125rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      py: 2,
+                    }}
+                  >
+                    Pendiente
+                  </TableCell>
+                </>
+              )}
+
               <TableCell
                 align="center"
                 sx={{
@@ -215,6 +271,35 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
                       </Typography>
                     )}
                   </TableCell>
+
+                  {/* FASE 2: Nuevas celdas de pago - Solo si tiene permisos */}
+                  {canViewPayments && (
+                    <>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: '#4caf50', fontWeight: 'bold' }}
+                        >
+                          ${formatCurrency(factura.total_pagado || '0')}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color:
+                              parseFloat(factura.pendiente_pagar || '0') > 0
+                                ? '#ff9800'
+                                : '#4caf50',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          ${formatCurrency(factura.pendiente_pagar || '0')}
+                        </Typography>
+                      </TableCell>
+                    </>
+                  )}
+
                   <TableCell align="center">
                     <Tooltip title={`Ver detalles de la factura ${factura.numero_factura}`} {...tooltipProps}>
                       <IconButton
@@ -226,6 +311,36 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
                         <Visibility fontSize="small" />
                       </IconButton>
                     </Tooltip>
+
+                    {/* FASE 2: Botones de pago - Solo CONTADOR/ADMIN */}
+                    {isCounterOrAdmin && (
+                      <>
+                        {factura.estado === 'aprobada' && (
+                          <Tooltip title={`Registrar pago para ${factura.numero_factura}`} {...tooltipProps}>
+                            <IconButton
+                              size="small"
+                              onClick={() => openRegistroModal(factura)}
+                              aria-label={`Registrar pago para ${factura.numero_factura}`}
+                              sx={{ color: '#1976d2', '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.08)' } }}
+                            >
+                              <AddCircle fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+
+                        <Tooltip title={`Ver historial de pagos de ${factura.numero_factura}`} {...tooltipProps}>
+                          <IconButton
+                            size="small"
+                            onClick={() => openHistorialModal(factura.id)}
+                            aria-label={`Ver historial de pagos de ${factura.numero_factura}`}
+                            sx={{ color: '#4caf50', '&:hover': { backgroundColor: 'rgba(76, 175, 80, 0.08)' } }}
+                          >
+                            <History fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </>
+                    )}
+
                     {isAdmin && (
                       <>
                         <Tooltip title={`Editar factura ${factura.numero_factura}`} {...tooltipProps}>
@@ -255,7 +370,7 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={9} align="center">
+                <TableCell colSpan={totalColumns} align="center">
                   <Box
                     sx={{
                       py: 8,
@@ -325,6 +440,36 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
         onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
         labelRowsPerPage="Filas por página:"
       />
+
+      {/* FASE 2: Modales de pago - Solo si usuario es CONTADOR/ADMIN */}
+      {isCounterOrAdmin && (
+        <>
+          <ModalRegistroPago
+            isOpen={registroModalOpen}
+            onClose={closeRegistroModal}
+            factura={selectedFacturaForPayment}
+            facturaId={selectedFacturaForPayment?.id || 0}
+            facturaNumero={selectedFacturaForPayment?.numero_factura}
+            totalFactura={selectedFacturaForPayment?.monto_total?.toString() || '0'}
+            totalPagado={selectedFacturaForPayment?.total_pagado || '0'}
+            pendientePagar={selectedFacturaForPayment?.pendiente_pagar || '0'}
+            onPagoSuccess={async () => {
+              closeRegistroModal();
+              // Refresh data if callback is provided
+              if (onRefreshData) {
+                await onRefreshData();
+              }
+            }}
+          />
+
+          <ModalHistorialPagos
+            isOpen={historialModalOpen}
+            onClose={closeHistorialModal}
+            facturaId={selectedFacturaIdForHistory || 0}
+            factura={selectedFacturaForPayment}
+          />
+        </>
+      )}
     </Card>
   );
 };
