@@ -22,7 +22,9 @@ import {
   PictureAsPdf,
   CheckCircle,
   Assessment,
+  AddCircle,
 } from '@mui/icons-material';
+import { ModalRegistroPago } from '../dashboard/components/ModalRegistroPago';
 import { facturasService, type FacturaPendiente } from './services/facturas.service';
 import { zentriaColors } from '../../theme/colors';
 
@@ -38,6 +40,10 @@ function FacturasPendientesPage() {
   const [facturas, setFacturas] = useState<FacturaPendiente[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados para modal de pago
+  const [registroModalOpen, setRegistroModalOpen] = useState(false);
+  const [selectedFactura, setSelectedFactura] = useState<FacturaPendiente | null>(null);
 
   const loadFacturas = async () => {
     setLoading(true);
@@ -77,12 +83,12 @@ function FacturasPendientesPage() {
     });
   };
 
-  const handleVerPDF = async (facturaId: number) => {
+  const handleVerDetalles = async (facturaId: number) => {
     try {
       await facturasService.openPdfInNewTab(facturaId, false);
     } catch (error) {
-      console.error('Error abriendo PDF:', error);
-      setError('Error al abrir el PDF. Por favor intente nuevamente.');
+      console.error('Error abriendo detalles de factura:', error);
+      setError('Error al abrir los detalles de la factura. Por favor intente nuevamente.');
     }
   };
 
@@ -107,6 +113,22 @@ function FacturasPendientesPage() {
         sx={{ fontWeight: 600 }}
       />
     );
+  };
+
+  const handleOpenRegistroModal = (factura: FacturaPendiente) => {
+    setSelectedFactura(factura);
+    setRegistroModalOpen(true);
+  };
+
+  const handleCloseRegistroModal = () => {
+    setRegistroModalOpen(false);
+    setSelectedFactura(null);
+  };
+
+  const handlePagoSuccess = async () => {
+    handleCloseRegistroModal();
+    // Refrescar la lista de facturas después del pago exitoso
+    await loadFacturas();
   };
 
   return (
@@ -191,7 +213,10 @@ function FacturasPendientesPage() {
                 <TableCell sx={{ fontWeight: 700 }}>Fecha Emisión</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
                 <TableCell sx={{ fontWeight: 700 }} align="center">
-                  Acciones
+                  Pago
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="center">
+                  Factura
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -224,11 +249,22 @@ function FacturasPendientesPage() {
                   </TableCell>
                   <TableCell>{getEstadoChip(factura.estado)}</TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Ver PDF Original">
+                    <Tooltip title="Registrar pago">
+                      <IconButton
+                        size="small"
+                        color="success"
+                        onClick={() => handleOpenRegistroModal(factura)}
+                      >
+                        <AddCircle />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Ver detalles de la factura">
                       <IconButton
                         size="small"
                         color="primary"
-                        onClick={() => handleVerPDF(factura.id)}
+                        onClick={() => handleVerDetalles(factura.id)}
                       >
                         <PictureAsPdf />
                       </IconButton>
@@ -239,6 +275,20 @@ function FacturasPendientesPage() {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {/* Modal de Registro de Pago */}
+      {selectedFactura && (
+        <ModalRegistroPago
+          isOpen={registroModalOpen}
+          onClose={handleCloseRegistroModal}
+          facturaId={selectedFactura.id}
+          facturaNumero={selectedFactura.numero_factura}
+          totalFactura={selectedFactura.monto.toString()}
+          totalPagado="0"
+          pendientePagar={selectedFactura.monto.toString()}
+          onPagoSuccess={handlePagoSuccess}
+        />
       )}
     </Box>
   );
