@@ -36,7 +36,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PagoRequest, MetodoPago } from '../../../types/payment.types';
-import usePayment from './usePayment';
+import usePayment from '../hooks/usePayment';
 
 // Zod schema para validación
 const PagoSchema = z.object({

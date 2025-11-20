@@ -36,7 +36,7 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingIcon from '@mui/icons-material/Pending';
 import { Pago, FacturaConPagos } from '../../../types/payment.types';
-import usePayment from './usePayment';
+import usePayment from '../hooks/usePayment';
 
 interface ModalHistorialPagosProps {
   isOpen: boolean;
