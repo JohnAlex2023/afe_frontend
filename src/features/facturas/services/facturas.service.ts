@@ -31,7 +31,7 @@ export interface FacturaPendiente {
   id: number;
   numero_factura: string;
   proveedor: string | null;
-  monto: number;
+  monto: string; // String para precisión en cálculos monetarios
   fecha_emision: string | null;
   estado: string;
 }

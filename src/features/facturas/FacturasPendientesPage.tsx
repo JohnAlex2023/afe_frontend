@@ -66,12 +66,13 @@ function FacturasPendientesPage() {
     loadFacturas();
   }, []);
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
       minimumFractionDigits: 0,
-    }).format(amount);
+    }).format(numAmount);
   };
 
   const formatDate = (date: string | null) => {
@@ -284,9 +285,9 @@ function FacturasPendientesPage() {
           onClose={handleCloseRegistroModal}
           facturaId={selectedFactura.id}
           facturaNumero={selectedFactura.numero_factura}
-          totalFactura={selectedFactura.monto.toString()}
+          totalFactura={selectedFactura.monto}
           totalPagado="0"
-          pendientePagar={selectedFactura.monto.toString()}
+          pendientePagar={selectedFactura.monto}
           onPagoSuccess={handlePagoSuccess}
         />
       )}
