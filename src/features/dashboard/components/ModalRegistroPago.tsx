@@ -101,7 +101,7 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
   } = useForm<PagoFormData>({
     resolver: zodResolver(PagoSchema),
     defaultValues: {
-      monto_pagado: '',
+      monto_pagado: pendientePagar, // Valor pendiente por defecto
       referencia_pago: '',
       metodo_pago: MetodoPago.TRANSFERENCIA
     }
@@ -273,11 +273,11 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
                     label="Referencia de Pago"
                     fullWidth
                     variant="outlined"
-                    placeholder="CHQ-001, TRF-ABC, etc."
+                    placeholder="CHO-001, TRF-ABC, ETC"
                     error={!!errors.referencia_pago || referenciaExiste}
                     helperText={
                       errors.referencia_pago?.message ||
-                      (referenciaExiste ? 'Esta referencia ya existe' : 'Ej: CHQ-001, TRF-ABC123')
+                      (referenciaExiste ? 'Esta referencia ya existe' : 'Ej: CHO-001 (cheque), TRF-ABC123 (transferencia), EFE-001 (efectivo)')
                     }
                     disabled={isLoading}
                     inputProps={{
@@ -324,8 +324,9 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
             <Grid item xs={12}>
               <Alert severity="info">
                 <Typography variant="caption">
-                  <strong>Importante:</strong> La referencia de pago debe ser única e identifica este pago de forma específica.
-                  Ejemplos: CHQ-001 (cheque), TRF-ABC (transferencia), etc.
+                  <strong>Referencia de Pago:</strong> Código único que identifica este pago. Puede ser el número de cheque, número de transacción bancaria, o un código interno.
+                  <br />
+                  <strong>Ejemplos:</strong> CHO-001 (cheque #1), TRF-ABC (transacción ABC), EFE-001 (efectivo)
                 </Typography>
               </Alert>
             </Grid>
