@@ -9,6 +9,7 @@
  */
 
 import axios, { AxiosError } from 'axios';
+import apiClient from './api';
 import {
   Pago,
   PagoRequest,
@@ -17,9 +18,6 @@ import {
   FacturasPendientesResponse,
   PagosPaginados
 } from '../types/payment.types';
-
-// Get API base URL from environment
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 class PaymentService {
   /**
@@ -35,8 +33,8 @@ class PaymentService {
     datos: PagoRequest
   ): Promise<FacturaConPagos> {
     try {
-      const response = await axios.post<FacturaConPagos>(
-        `${API_BASE_URL}/accounting/facturas/${facturaId}/marcar-pagada`,
+      const response = await apiClient.post<FacturaConPagos>(
+        `/accounting/facturas/${facturaId}/marcar-pagada`,
         {
           monto_pagado: datos.monto_pagado.toString(),
           referencia_pago: datos.referencia_pago.toUpperCase().trim(),
@@ -58,8 +56,8 @@ class PaymentService {
    */
   async obtenerFacturaConPagos(facturaId: number): Promise<FacturaConPagos> {
     try {
-      const response = await axios.get<FacturaConPagos>(
-        `${API_BASE_URL}/facturas/${facturaId}`
+      const response = await apiClient.get<FacturaConPagos>(
+        `/facturas/${facturaId}`
       );
 
       return response.data;
@@ -80,8 +78,8 @@ class PaymentService {
     perPage: number = 20
   ): Promise<FacturasPendientesResponse> {
     try {
-      const response = await axios.get<FacturasPendientesResponse>(
-        `${API_BASE_URL}/accounting/facturas/pendientes`,
+      const response = await apiClient.get<FacturasPendientesResponse>(
+        `/accounting/facturas/pendientes`,
         {
           params: {
             page,
@@ -124,8 +122,8 @@ class PaymentService {
     try {
       // Obtener todas las facturas pendientes y revisarlas
       // En una implementación real, habría un endpoint específico para esto
-      const response = await axios.get(
-        `${API_BASE_URL}/accounting/facturas/pendientes?per_page=1000`
+      const response = await apiClient.get(
+        `/accounting/facturas/pendientes?per_page=1000`
       );
 
       const facturas = response.data.facturas || [];
@@ -156,8 +154,8 @@ class PaymentService {
    */
   async obtenerEstadisticasPagos() {
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/accounting/estadisticas-pagos`
+      const response = await apiClient.get(
+        `/accounting/estadisticas-pagos`
       );
 
       return response.data;
