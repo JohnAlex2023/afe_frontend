@@ -26,6 +26,11 @@ export interface Factura {
   // Campos calculados
   accion_por?: string;
   fecha_accion?: string;
+  // FASE 2 - Campos de pago (desde backend)
+  total_calculado?: string;
+  total_pagado?: string;
+  pendiente_pagar?: string;
+  esta_completamente_pagada?: boolean;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -30,10 +31,16 @@ import {
   Schedule,
   AccountBalance,
   Description,
+  PictureAsPdf,
+  Undo,
 } from '@mui/icons-material';
 import type { Workflow, ContextoHistorico } from '../../types/factura.types';
 import { zentriaColors } from '../../theme/colors';
 import ContextoHistoricoCard from '../ContextoHistorico';
+import { facturasService } from '../../features/facturas/services/facturas.service';
+import { useAppSelector } from '../../app/hooks';
+import { ROLES, hasPermission } from '../../constants/roles';
+import DevolucionDialog from './DevolucionDialog';
 
 interface FacturaDetailModalProps {
   open: boolean;
@@ -47,11 +54,25 @@ interface FacturaDetailModalProps {
  * con diseño moderno y comparación lado a lado
  */
 function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: FacturaDetailModalProps) {
+  // Estados locales
+  const [devolucionDialogOpen, setDevolucionDialogOpen] = useState(false);
+
+  // Obtener usuario actual para verificar permisos
+  const user = useAppSelector((state) => state.auth.user);
+
   if (!workflow || !workflow.factura) {
     return null;
   }
 
   const { factura, es_identica_mes_anterior, porcentaje_similitud, diferencias_detectadas, factura_referencia } = workflow;
+
+  // Verificar si el usuario es contador
+  const esContador = user?.rol === ROLES.CONTADOR;
+
+  // Verificar si la factura puede ser devuelta (debe estar aprobada)
+  const puedeDevolver =
+    esContador &&
+    (factura.estado === 'aprobada' || factura.estado === 'aprobada_auto');
 
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined) return '-';
@@ -123,6 +144,24 @@ function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: Fact
     return <TrendingDown color="success" />;
   };
 
+  // Handler para abrir PDF en nueva pestaña con autenticación
+  const handleVerPDF = async () => {
+    if (!factura?.id) return;
+    try {
+      await facturasService.openPdfInNewTab(factura.id, false);
+    } catch (error: any) {
+      console.error('Error abriendo PDF:', error);
+      // Mostrar mensaje de error específico al usuario
+      alert(error.message || 'Error al abrir el PDF. Por favor intente nuevamente.');
+    }
+  };
+
+  // Handler para devolución exitosa
+  const handleDevolucionSuccess = () => {
+    // Cerrar el modal principal ya que la factura cambió de estado
+    onClose();
+  };
+
   return (
     <Dialog
       open={open}
@@ -145,6 +184,7 @@ function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: Fact
           position: 'relative',
         }}
       >
+        {/* Botón Cerrar */}
         <IconButton
           onClick={onClose}
           aria-label="Cerrar detalles de factura"
@@ -164,13 +204,35 @@ function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: Fact
 
         <Stack direction="row" spacing={2} alignItems="center" mb={1}>
           <Receipt sx={{ fontSize: 40 }} />
-          <Box>
+          <Box flex={1}>
             <Typography variant="h4" fontWeight={700}>
               {factura.numero_factura}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            <Typography variant="body2" sx={{ opacity: 0.9, mb: 1.5 }}>
               CUFE: {factura.cufe}
             </Typography>
+            {/* Botón Ver PDF Original - REDISEÑADO 2025-11-18 */}
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<PictureAsPdf />}
+              onClick={handleVerPDF}
+              sx={{
+                backgroundColor: zentriaColors.naranja.main,
+                color: 'white',
+                fontWeight: 600,
+                textTransform: 'none',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                '&:hover': {
+                  backgroundColor: zentriaColors.naranja.dark,
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              Ver PDF Original
+            </Button>
           </Box>
         </Stack>
 
@@ -622,11 +684,36 @@ function FacturaDetailModal({ open, onClose, workflow, contextoHistorico }: Fact
         )}
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa' }}>
+      <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa', gap: 2 }}>
+        {/* Botón Devolver Factura - Solo para contadores con facturas aprobadas */}
+        {puedeDevolver && (
+          <Button
+            onClick={() => setDevolucionDialogOpen(true)}
+            variant="contained"
+            color="warning"
+            startIcon={<Undo />}
+            size="large"
+            sx={{ minWidth: 180 }}
+          >
+            Devolver Factura
+          </Button>
+        )}
+        <Box sx={{ flex: 1 }} />
         <Button onClick={onClose} variant="outlined" size="large" sx={{ minWidth: 120 }}>
           Cerrar
         </Button>
       </DialogActions>
+
+      {/* Dialog de Devolución - NUEVO 2025-11-18 */}
+      {puedeDevolver && (
+        <DevolucionDialog
+          open={devolucionDialogOpen}
+          onClose={() => setDevolucionDialogOpen(false)}
+          facturaId={factura.id}
+          numeroFactura={factura.numero_factura}
+          onDevolucionSuccess={handleDevolucionSuccess}
+        />
+      )}
     </Dialog>
   );
 }

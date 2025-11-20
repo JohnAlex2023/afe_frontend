@@ -5,6 +5,46 @@
 
 import apiClient from '../../../services/api';
 
+// ============================================================================
+// INTERFACES Y TIPOS
+// ============================================================================
+
+export interface DevolucionRequest {
+  observaciones: string;
+  notificar_proveedor: boolean;
+  notificar_responsable: boolean;
+}
+
+export interface DevolucionResponse {
+  success: boolean;
+  factura_id: number;
+  numero_factura: string;
+  estado_anterior: string;
+  estado_nuevo: string;
+  notificaciones_enviadas: number;
+  destinatarios: string[];
+  mensaje: string;
+  timestamp: string;
+}
+
+export interface FacturaPendiente {
+  id: number;
+  numero_factura: string;
+  proveedor: string | null;
+  monto: number;
+  fecha_emision: string | null;
+  estado: string;
+}
+
+export interface FacturasPendientesResponse {
+  total: number;
+  facturas: FacturaPendiente[];
+}
+
+// ============================================================================
+// SERVICE
+// ============================================================================
+
 export const facturasService = {
   /**
    * Approve a factura
@@ -25,5 +65,107 @@ export const facturasService = {
       motivo,
       detalle: detalle || undefined,
     });
+  },
+
+  // ============================================================================
+  // NUEVOS MÉTODOS - CONTADOR (2025-11-18)
+  // ============================================================================
+
+  /**
+   * Abre el PDF de una factura en una nueva ventana con autenticación
+   * CORREGIDO 2025-11-18: Ahora incluye el token de autenticación Bearer
+   *
+   * @param id - ID de la factura
+   * @param download - Si es true, fuerza descarga. Si es false (default), abre inline en navegador
+   */
+  async openPdfInNewTab(id: number, download: boolean = false): Promise<void> {
+    try {
+      const downloadParam = download ? '?download=true' : '';
+
+      // Usar apiClient que ya tiene el token Bearer configurado automáticamente
+      const response = await apiClient.get(`/facturas/${id}/pdf${downloadParam}`, {
+        responseType: 'blob',
+      });
+
+      // Verificar que recibimos un PDF válido
+      if (!response.data || response.data.size === 0) {
+        throw new Error('PDF no disponible o vacío');
+      }
+
+      // Crear URL del blob y abrirlo en nueva pestaña
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+
+      // Abrir en nueva ventana
+      const newWindow = window.open(url, '_blank');
+
+      if (!newWindow) {
+        throw new Error('No se pudo abrir ventana. Verifica que el bloqueador de ventanas emergentes esté deshabilitado.');
+      }
+
+      // Limpiar URL después de que se haya cargado
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error: any) {
+      console.error('Error abriendo PDF:', error);
+
+      // Proporcionar mensaje de error más específico
+      if (error.response?.status === 404) {
+        throw new Error('PDF no encontrado. Esta factura no tiene un archivo PDF asociado.');
+      } else if (error.response?.status === 401 || error.response?.status === 403) {
+        throw new Error('No tienes permisos para ver este PDF. Por favor inicia sesión nuevamente.');
+      } else {
+        throw new Error(error.message || 'Error al cargar el PDF. Por favor intenta nuevamente.');
+      }
+    }
+  },
+
+  /**
+   * @deprecated Use openPdfInNewTab() instead. This method doesn't include authentication.
+   */
+  getPdfUrl(id: number, download: boolean = false): string {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    const downloadParam = download ? '?download=true' : '';
+    return `${baseUrl}/api/v1/facturas/${id}/pdf${downloadParam}`;
+  },
+
+  /**
+   * Devuelve una factura aprobada al proveedor solicitando información adicional
+   * Solo disponible para rol 'contador'
+   *
+   * @param id - ID de la factura a devolver
+   * @param request - Datos de la devolución (observaciones, flags de notificación)
+   * @returns Respuesta con resultado de la devolución
+   */
+  async devolverFactura(id: number, request: DevolucionRequest): Promise<DevolucionResponse> {
+    const response = await apiClient.post<DevolucionResponse>(
+      `/accounting/facturas/${id}/devolver`,
+      request
+    );
+    return response.data;
+  },
+
+  /**
+   * Obtiene todas las facturas aprobadas pendientes de procesar por contabilidad
+   * Solo disponible para rol 'contador'
+   *
+   * @returns Lista de facturas pendientes
+   */
+  async getFacturasPendientes(): Promise<FacturasPendientesResponse> {
+    const response = await apiClient.get<FacturasPendientesResponse>(
+      '/accounting/facturas/pendientes'
+    );
+    return response.data;
+  },
+
+  /**
+   * Obtiene información de documentos (PDF/XML) de una factura sin descargarlos
+   * Útil para mostrar en UI si hay PDF disponible y su tamaño
+   *
+   * @param id - ID de la factura
+   * @returns Metadata de los documentos
+   */
+  async getDocumentosInfo(id: number): Promise<any> {
+    const response = await apiClient.get(`/facturas/${id}/documentos/info`);
+    return response.data;
   },
 };

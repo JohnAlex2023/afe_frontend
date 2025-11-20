@@ -5,6 +5,7 @@ import LoginPage from './features/auth/LoginPage';
 import MicrosoftCallbackPage from './features/auth/MicrosoftCallbackPage';
 import DashboardPage from './features/dashboard/DashboardPage';
 import FacturasPage from './features/facturas/FacturasPage';
+import FacturasPendientesPage from './features/facturas/FacturasPendientesPage';
 import ResponsablesPage from './features/admin/ResponsablesPage';
 import ProveedoresManagementPage from './features/proveedores/ProveedoresManagementPage';
 import EmailConfigPage from './features/email-config/EmailConfigPage';
@@ -44,6 +45,16 @@ function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="facturas" element={<FacturasPage />} />
+
+        {/* Ruta para contadores - Facturas Pendientes (NUEVO 2025-11-18) */}
+        <Route
+          path="contabilidad/pendientes"
+          element={
+            <RoleGuard allowedRoles={['contador']}>
+              <FacturasPendientesPage />
+            </RoleGuard>
+          }
+        />
 
         {/* Rutas de administración - admin y viewer (solo lectura) */}
         <Route

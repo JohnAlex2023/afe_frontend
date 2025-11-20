@@ -25,6 +25,7 @@ import {
   People as PeopleIcon,
   Store as StoreIcon,
   Email as EmailIcon,
+  Assessment as AssessmentIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
@@ -37,8 +38,13 @@ const DRAWER_WIDTH = 260;
 
 // Menús base para todos los usuarios
 const baseMenuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'responsable', 'viewer'] },
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard', roles: ['admin', 'responsable', 'contador', 'viewer'] },
   { text: 'Por Revisar', icon: <DescriptionIcon />, path: '/facturas', roles: ['admin', 'responsable', 'viewer'] },
+];
+
+// Menús para contadores - NUEVO 2025-11-18
+const contadorMenuItems = [
+  { text: 'Facturas Pendientes', icon: <AssessmentIcon />, path: '/contabilidad/pendientes', roles: ['contador'] },
 ];
 
 // Menús adicionales para administradores
@@ -80,9 +86,15 @@ function MainLayout() {
 
   // Filtrar menús según el rol del usuario
   // Admin y viewer ven los menús adicionales (con diferentes permisos)
-  const allMenuItems = user?.rol === 'admin' || user?.rol === 'viewer'
-    ? [...baseMenuItems, ...adminMenuItems]
-    : baseMenuItems;
+  // Contador ve su menú especializado
+  let allMenuItems = [...baseMenuItems];
+
+  if (user?.rol === 'admin' || user?.rol === 'viewer') {
+    allMenuItems = [...allMenuItems, ...adminMenuItems];
+  } else if (user?.rol === 'contador') {
+    allMenuItems = [...allMenuItems, ...contadorMenuItems];
+  }
+
   const filteredMenuItems = allMenuItems.filter(item => user && item.roles.includes(user.rol));
 
   const drawer = (

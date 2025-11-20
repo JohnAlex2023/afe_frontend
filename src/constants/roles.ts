@@ -6,6 +6,7 @@
 export const ROLES = {
   ADMIN: 'admin',
   RESPONSABLE: 'responsable',
+  CONTADOR: 'contador', //  Procesa pagos y devuelve facturas
   VIEWER: 'viewer',
 } as const;
 
@@ -16,6 +17,7 @@ export type Role = typeof ROLES[keyof typeof ROLES];
 export const ROLE_LABELS: Record<Role, string> = {
   [ROLES.ADMIN]: 'Administrador',
   [ROLES.RESPONSABLE]: 'Responsable',
+  [ROLES.CONTADOR]: 'Contador',
   [ROLES.VIEWER]: 'Visualizador',
 };
 
@@ -23,6 +25,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   [ROLES.ADMIN]: 'Control total del sistema',
   [ROLES.RESPONSABLE]: 'Aprueba y rechaza facturas asignadas',
+  [ROLES.CONTADOR]: 'Procesa pagos y devuelve facturas para corrección',
   [ROLES.VIEWER]: 'Solo visualización, sin acciones',
 };
 
@@ -41,6 +44,14 @@ export const ROLE_PERMISSIONS = {
     canViewUsers: true,
     canViewProviders: true,
     canViewFullUserData: true,
+    canViewPDF: true,               // ⭐ NUEVO: Puede ver PDFs
+    canDevolverFactura: false,      // ⭐ NUEVO: NO devuelve facturas (no es su rol)
+    // FASE 2 - Permisos de pagos (Admin: acceso total)
+    canViewPayments: true,
+    canRegisterPayment: true,
+    canViewPaymentHistory: true,
+    canEditPayment: true,
+    canDeletePayment: true,
   },
   [ROLES.RESPONSABLE]: {
     canCreate: false,
@@ -55,6 +66,36 @@ export const ROLE_PERMISSIONS = {
     canViewUsers: false,
     canViewProviders: false,
     canViewFullUserData: false,
+    canViewPDF: true,               // ⭐ NUEVO: Puede ver PDFs
+    canDevolverFactura: false,      // ⭐ NUEVO: NO devuelve facturas
+    // FASE 2 - Permisos de pagos (Responsable: NO tiene acceso)
+    canViewPayments: false,
+    canRegisterPayment: false,
+    canViewPaymentHistory: false,
+    canEditPayment: false,
+    canDeletePayment: false,
+  },
+  [ROLES.CONTADOR]: {
+    canCreate: false,
+    canEdit: false,
+    canDelete: false,
+    canApprove: false,              // NO puede aprobar (solo contabilidad)
+    canReject: false,               // NO puede rechazar (solo contabilidad)
+    canViewAll: true,               // Puede ver todas las facturas
+    canManageUsers: false,
+    canManageProviders: false,
+    canConfigureEmail: false,
+    canViewUsers: true,             // Puede ver usuarios
+    canViewProviders: true,         // Puede ver proveedores
+    canViewFullUserData: false,     // NO ve datos sensibles completos
+    canViewPDF: true,               // ⭐ NUEVO: Puede ver PDFs (esencial para su trabajo)
+    canDevolverFactura: true,       // ⭐ NUEVO: Puede devolver facturas al proveedor
+    // FASE 2 - Permisos de pagos (Contador: acceso total para registrar)
+    canViewPayments: true,
+    canRegisterPayment: true,
+    canViewPaymentHistory: true,
+    canEditPayment: false,
+    canDeletePayment: false,
   },
   [ROLES.VIEWER]: {
     canCreate: false,
@@ -66,9 +107,17 @@ export const ROLE_PERMISSIONS = {
     canManageUsers: false,
     canManageProviders: false,
     canConfigureEmail: false,
-    canViewUsers: true,           // ⭐ NUEVO: Puede ver usuarios
-    canViewProviders: true,        // ⭐ NUEVO: Puede ver proveedores
-    canViewFullUserData: false,    // ⭐ NUEVO: NO ve datos sensibles completos
+    canViewUsers: true,             // ⭐ NUEVO: Puede ver usuarios
+    canViewProviders: true,         // ⭐ NUEVO: Puede ver proveedores
+    canViewFullUserData: false,     // ⭐ NUEVO: NO ve datos sensibles completos
+    canViewPDF: true,               // ⭐ NUEVO: Puede ver PDFs
+    canDevolverFactura: false,      // ⭐ NUEVO: NO devuelve facturas
+    // FASE 2 - Permisos de pagos (Viewer: NO tiene acceso)
+    canViewPayments: false,
+    canRegisterPayment: false,
+    canViewPaymentHistory: false,
+    canEditPayment: false,
+    canDeletePayment: false,
   },
 };
 
