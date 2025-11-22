@@ -109,6 +109,9 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
           type: 'custom',
           message: `El monto no puede exceder el pendiente de $${pendientePagar}`
         });
+      } else {
+        // Limpiar el error si el monto es válido
+        setFormError('monto_pagado', { type: 'custom', message: '' });
       }
     }
   }, [montoIngresado, pendientePagar, setFormError]);
