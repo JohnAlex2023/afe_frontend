@@ -23,8 +23,10 @@ import {
   CheckCircle,
   Assessment,
   AddCircle,
+  History,
 } from '@mui/icons-material';
 import { ModalRegistroPago } from '../dashboard/components/ModalRegistroPago';
+import { ModalHistorialPagos } from '../dashboard/components/ModalHistorialPagos';
 import { facturasService, type FacturaPendiente } from './services/facturas.service';
 import { zentriaColors } from '../../theme/colors';
 
@@ -44,6 +46,10 @@ function FacturasPendientesPage() {
   // Estados para modal de pago
   const [registroModalOpen, setRegistroModalOpen] = useState(false);
   const [selectedFactura, setSelectedFactura] = useState<FacturaPendiente | null>(null);
+
+  // Estados para modal de historial de pagos
+  const [historialModalOpen, setHistorialModalOpen] = useState(false);
+  const [selectedFacturaIdForHistory, setSelectedFacturaIdForHistory] = useState<number | null>(null);
 
   const loadFacturas = async () => {
     setLoading(true);
@@ -137,6 +143,16 @@ function FacturasPendientesPage() {
     setSelectedFactura(null);
   };
 
+  const handleOpenHistorialModal = (factura: FacturaPendiente) => {
+    setSelectedFacturaIdForHistory(factura.id);
+    setHistorialModalOpen(true);
+  };
+
+  const handleCloseHistorialModal = () => {
+    setHistorialModalOpen(false);
+    setSelectedFacturaIdForHistory(null);
+  };
+
   const handlePagoSuccess = async () => {
     handleCloseRegistroModal();
     // Refrescar la lista de facturas después del pago exitoso
@@ -228,6 +244,9 @@ function FacturasPendientesPage() {
                   Pago
                 </TableCell>
                 <TableCell sx={{ fontWeight: 700 }} align="center">
+                  Historial
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }} align="center">
                   Factura
                 </TableCell>
               </TableRow>
@@ -275,6 +294,17 @@ function FacturasPendientesPage() {
                     </Tooltip>
                   </TableCell>
                   <TableCell align="center">
+                    <Tooltip title="Ver historial de pagos">
+                      <IconButton
+                        size="small"
+                        color="info"
+                        onClick={() => handleOpenHistorialModal(factura)}
+                      >
+                        <History />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="center">
                     <Tooltip title="Ver detalles de la factura">
                       <IconButton
                         size="small"
@@ -303,6 +333,16 @@ function FacturasPendientesPage() {
           totalPagado="0"
           pendientePagar={selectedFactura.monto}
           onPagoSuccess={handlePagoSuccess}
+        />
+      )}
+
+      {/* Modal de Historial de Pagos */}
+      {selectedFacturaIdForHistory && (
+        <ModalHistorialPagos
+          isOpen={historialModalOpen}
+          onClose={handleCloseHistorialModal}
+          factura={null}
+          facturaId={selectedFacturaIdForHistory}
         />
       )}
     </Box>
