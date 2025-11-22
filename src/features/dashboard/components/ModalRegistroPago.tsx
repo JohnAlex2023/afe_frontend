@@ -41,8 +41,8 @@ import usePayment from '../hooks/usePayment';
 // Zod schema para validación
 const PagoSchema = z.object({
   monto_pagado: z
-    .string()
-    .min(1, 'El monto es requerido')
+    .union([z.string(), z.number()])
+    .transform((val) => (typeof val === 'number' ? val.toString() : val))
     .refine(
       (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
       'El monto debe ser mayor a 0'
@@ -92,7 +92,7 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
     resolver: zodResolver(PagoSchema),
     defaultValues: {
       monto_pagado: pendientePagar, // Valor pendiente por defecto
-      metodo_pago: MetodoPago.TRANSFERENCIA
+      metodo_pago: 'transferencia'
     }
   });
 
@@ -250,16 +250,18 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
                 control={control}
                 render={({ field }) => (
                   <FormControl fullWidth>
-                    <InputLabel>Método de Pago</InputLabel>
+                    <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
                     <Select
                       {...field}
+                      labelId="metodo-pago-label"
+                      id="metodo-pago-select"
                       label="Método de Pago"
                       disabled={isLoading}
                     >
-                      <MenuItem value={MetodoPago.CHEQUE}>Cheque</MenuItem>
-                      <MenuItem value={MetodoPago.TRANSFERENCIA}>Transferencia</MenuItem>
-                      <MenuItem value={MetodoPago.EFECTIVO}>Efectivo</MenuItem>
-                      <MenuItem value={MetodoPago.TARJETA}>Tarjeta</MenuItem>
+                      <MenuItem value="cheque">Cheque</MenuItem>
+                      <MenuItem value="transferencia">Transferencia</MenuItem>
+                      <MenuItem value="efectivo">Efectivo</MenuItem>
+                      <MenuItem value="tarjeta">Tarjeta</MenuItem>
                       <MenuItem value="otro">Otro</MenuItem>
                     </Select>
                     <FormHelperText>Selecciona el método de pago utilizado</FormHelperText>
