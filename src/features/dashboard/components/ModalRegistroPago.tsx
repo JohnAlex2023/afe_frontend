@@ -121,8 +121,9 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
     setServerError(null);
 
     try {
+      // Enviar monto como string para que Pydantic lo convierta a Decimal (evita errores de precisión)
       const pagoRequest: PagoRequest = {
-        monto_pagado: parseFloat(data.monto_pagado),
+        monto_pagado: data.monto_pagado, // Se envía como string, el backend lo convierte a Decimal
         referencia_pago: `AUTO-${Date.now()}`, // Referencia auto-generada
         metodo_pago: data.metodo_pago || 'otro'
       };
