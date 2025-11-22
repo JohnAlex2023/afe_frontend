@@ -30,8 +30,10 @@ import {
   Grid,
   Typography,
   FormHelperText,
-  Paper
+  Paper,
+  Snackbar
 } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -79,6 +81,7 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
 }) => {
   const { registrarPago, isLoading, error, limpiarError } = usePayment();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const {
     control,
@@ -119,6 +122,7 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
 
   const onSubmit = async (data: PagoFormData) => {
     setServerError(null);
+    setSuccessMessage(null);
 
     try {
       // Enviar monto como string para que Pydantic lo convierta a Decimal (evita errores de precisión)
@@ -128,19 +132,23 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
         metodo_pago: data.metodo_pago || 'otro'
       };
 
-      await registrarPago(facturaId, pagoRequest);
+      const pagoResponse = await registrarPago(facturaId, pagoRequest);
 
-      // Éxito - Ejecutar callback
-      const successMessage = `Pago de $${data.monto_pagado} registrado exitosamente`;
+      // Éxito - Mostrar mensaje
+      const msgExito = `✓ Pago de $${data.monto_pagado} registrado exitosamente`;
+      setSuccessMessage(msgExito);
 
       // Soportar callbacks asincronos (para refresh de datos)
-      const result = onPagoSuccess?.(successMessage);
+      const result = onPagoSuccess?.(msgExito);
       if (result instanceof Promise) {
         await result;
       }
 
-      reset();
-      onClose();
+      // Esperar un poco para que vea el mensaje de éxito, luego cerrar
+      setTimeout(() => {
+        reset();
+        onClose();
+      }, 1500);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error al registrar pago';
       setServerError(errorMsg);
@@ -314,6 +322,30 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
           )}
         </Button>
       </DialogActions>
+
+      {/* Toast de Éxito */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={4000}
+        onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSuccessMessage(null)}
+          severity="success"
+          variant="filled"
+          sx={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            backgroundColor: '#4caf50'
+          }}
+          icon={<CheckCircleIcon />}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };

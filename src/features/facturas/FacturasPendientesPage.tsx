@@ -94,6 +94,17 @@ function FacturasPendientesPage() {
   };
 
   const getEstadoChip = (estado: string) => {
+    if (estado === 'pagada') {
+      return (
+        <Chip
+          label="✓ Pagada"
+          color="success"
+          size="small"
+          icon={<CheckCircle />}
+          sx={{ fontWeight: 600, backgroundColor: '#2e7d32', color: 'white' }}
+        />
+      );
+    }
     if (estado === 'aprobada_auto') {
       return (
         <Chip
@@ -250,14 +261,17 @@ function FacturasPendientesPage() {
                   </TableCell>
                   <TableCell>{getEstadoChip(factura.estado)}</TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Registrar pago">
-                      <IconButton
-                        size="small"
-                        color="success"
-                        onClick={() => handleOpenRegistroModal(factura)}
-                      >
-                        <AddCircle />
-                      </IconButton>
+                    <Tooltip title={factura.estado === 'pagada' ? 'Factura ya pagada' : 'Registrar pago'}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          color="success"
+                          onClick={() => handleOpenRegistroModal(factura)}
+                          disabled={factura.estado === 'pagada'}
+                        >
+                          <AddCircle />
+                        </IconButton>
+                      </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell align="center">
