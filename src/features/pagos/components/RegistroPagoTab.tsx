@@ -8,8 +8,6 @@ import {
   Box,
   Button,
   Typography,
-  Card,
-  CardContent,
   Stack,
   Paper,
 } from '@mui/material';
@@ -21,7 +19,7 @@ interface RegistroPagoTabProps {
   onPagoRegistrado?: () => void;
 }
 
-export const RegistroPagoTab: React.FC<RegistroPagoTabProps> = ({ onPagoRegistrado }) => {
+export const RegistroPagoTab: React.FC<RegistroPagoTabProps> = () => {
   const navigate = useNavigate();
 
   return (
@@ -115,7 +113,7 @@ export const RegistroPagoTab: React.FC<RegistroPagoTabProps> = ({ onPagoRegistra
           size="large"
           fullWidth
           endIcon={<ArrowForward />}
-          onClick={() => navigate('/facturas-pendientes')}
+          onClick={() => navigate('/contabilidad/pendientes')}
           sx={{
             background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.violeta.dark})`,
             py: 1.5,
