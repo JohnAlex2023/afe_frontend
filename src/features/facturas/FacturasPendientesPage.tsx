@@ -300,8 +300,8 @@ function FacturasPendientesPage() {
           facturaId={selectedFactura.id}
           facturaNumero={selectedFactura.numero_factura}
           totalFactura={selectedFactura.monto}
-          totalPagado="0"
-          pendientePagar={selectedFactura.monto}
+          totalPagado={selectedFactura.total_pagado.toString()}
+          pendientePagar={selectedFactura.pendiente_pagar.toString()}
           onPagoSuccess={handlePagoSuccess}
         />
       )}

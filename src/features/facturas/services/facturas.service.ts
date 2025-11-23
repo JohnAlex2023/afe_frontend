@@ -34,6 +34,9 @@ export interface FacturaPendiente {
   monto: string; // String para precisión en cálculos monetarios
   fecha_emision: string | null;
   estado: string;
+  total_pagado: number; // Cantidad ya pagada
+  pendiente_pagar: number; // Cantidad aún pendiente
+  esta_completamente_pagada: boolean; // true si ya fue pagada completamente
 }
 
 export interface FacturasPendientesResponse {
