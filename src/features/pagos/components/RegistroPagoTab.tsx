@@ -17,10 +17,9 @@ import {
   TextField,
   Autocomplete,
 } from '@mui/material';
-import { AddCircle } from '@mui/icons-material';
-import { useAppSelector, useAppDispatch } from '../../../app/hooks';
-import { fetchFacturasPendientes } from '../../../features/facturas/facturasSlice';
+import { AddCircle, Refresh } from '@mui/icons-material';
 import type { FacturaPendiente } from '../../../types/factura.types';
+import { facturasService } from '../../facturas/services/facturas.service';
 import { ModalRegistroPago } from '../../dashboard/components/ModalRegistroPago';
 
 interface RegistroPagoTabProps {
@@ -28,25 +27,35 @@ interface RegistroPagoTabProps {
 }
 
 export const RegistroPagoTab: React.FC<RegistroPagoTabProps> = ({ onPagoRegistrado }) => {
-  const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
-  const { pendientes, loading, error } = useAppSelector((state) => state.facturas);
-
   // Estados locales
+  const [facturasAprobadas, setFacturasAprobadas] = useState<FacturaPendiente[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedFactura, setSelectedFactura] = useState<FacturaPendiente | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Cargar facturas aprobadas
-  useEffect(() => {
-    if (user?.id) {
-      dispatch(fetchFacturasPendientes(user.id));
+  // Cargar facturas aprobadas desde API
+  const cargarFacturasAprobadas = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await facturasService.getFacturasPendientes();
+      setFacturasAprobadas(response.facturas);
+    } catch (err: any) {
+      console.error('Error cargando facturas aprobadas:', err);
+      setError(
+        err.response?.data?.detail ||
+          'Error al cargar las facturas aprobadas. Por favor intente nuevamente.'
+      );
+      setFacturasAprobadas([]);
+    } finally {
+      setLoading(false);
     }
-  }, [dispatch, user?.id]);
+  };
 
-  // Filtrar solo facturas aprobadas
-  const facturasAprobadas = pendientes.filter(
-    (f) => f.estado === 'aprobada' || f.estado === 'aprobada_auto'
-  );
+  useEffect(() => {
+    cargarFacturasAprobadas();
+  }, []);
 
   const handleOpenModal = (factura: FacturaPendiente) => {
     setSelectedFactura(factura);
@@ -60,11 +69,9 @@ export const RegistroPagoTab: React.FC<RegistroPagoTabProps> = ({ onPagoRegistra
 
   const handlePagoSuccess = async () => {
     handleCloseModal();
-    // Refrescar lista de facturas
-    if (user?.id) {
-      dispatch(fetchFacturasPendientes(user.id));
-    }
-    // Notificar al padre que un pago fue registrado
+    // Refrescar lista de facturas aprobadas
+    await cargarFacturasAprobadas();
+    // Notificar al padre que un pago fue registrado para que refresque otros tabs
     onPagoRegistrado?.();
   };
 
@@ -99,6 +106,19 @@ export const RegistroPagoTab: React.FC<RegistroPagoTabProps> = ({ onPagoRegistra
           </Typography>
         </CardContent>
       </Card>
+
+      {/* Botón de actualizar */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={cargarFacturasAprobadas}
+          disabled={loading}
+          size="small"
+        >
+          Actualizar Listado
+        </Button>
+      </Box>
 
       {/* Selector de Factura */}
       {facturasAprobadas.length > 0 ? (
