@@ -43,6 +43,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 
 export const GestionPagosPage: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
+  const [pagoRegistrado, setPagoRegistrado] = useState(0); // Trigger para refrescar datos
   const user = useAppSelector((state) => state.auth.user);
 
   // Validar permisos
@@ -60,6 +61,10 @@ export const GestionPagosPage: React.FC = () => {
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const handlePagoRegistrado = () => {
+    setPagoRegistrado(prev => prev + 1);
   };
 
   return (
@@ -114,17 +119,17 @@ export const GestionPagosPage: React.FC = () => {
         <CardContent>
           {/* Tab 1: Registrar Pago */}
           <TabPanel value={tabValue} index={0}>
-            <RegistroPagoTab />
+            <RegistroPagoTab onPagoRegistrado={handlePagoRegistrado} />
           </TabPanel>
 
           {/* Tab 2: Historial de Pagos */}
           <TabPanel value={tabValue} index={1}>
-            <HistorialPagosTab />
+            <HistorialPagosTab pagoTrigger={pagoRegistrado} />
           </TabPanel>
 
           {/* Tab 3: Resumen de Pagos */}
           <TabPanel value={tabValue} index={2}>
-            <ResumenPagosTab />
+            <ResumenPagosTab pagoTrigger={pagoRegistrado} />
           </TabPanel>
         </CardContent>
       </Card>

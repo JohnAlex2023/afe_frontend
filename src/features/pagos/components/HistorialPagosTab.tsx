@@ -26,7 +26,11 @@ import { zentriaColors } from '../../../theme/colors';
 import paymentService from '../../../services/paymentService';
 import { Pago } from '../../../types/payment.types';
 
-export const HistorialPagosTab: React.FC = () => {
+interface HistorialPagosTabProps {
+  pagoTrigger?: number;
+}
+
+export const HistorialPagosTab: React.FC<HistorialPagosTabProps> = ({ pagoTrigger = 0 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [pagos, setPagos] = useState<Pago[]>([]);
@@ -34,7 +38,7 @@ export const HistorialPagosTab: React.FC = () => {
 
   useEffect(() => {
     cargarPagos();
-  }, []);
+  }, [pagoTrigger]);
 
   const cargarPagos = async () => {
     setLoading(true);

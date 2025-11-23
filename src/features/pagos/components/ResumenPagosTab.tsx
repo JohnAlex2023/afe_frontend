@@ -12,14 +12,17 @@ import {
   CircularProgress,
   Alert,
   LinearProgress,
+  Button,
 } from '@mui/material';
 import {
   TrendingUp,
   Payment,
   PendingActions,
   CheckCircle,
+  Refresh,
 } from '@mui/icons-material';
 import { zentriaColors } from '../../../theme/colors';
+import paymentService from '../../../services/paymentService';
 
 interface KPIData {
   totalFacturas: number;
@@ -66,7 +69,11 @@ const StatCard: React.FC<{
   </Card>
 );
 
-export const ResumenPagosTab: React.FC = () => {
+interface ResumenPagosTabProps {
+  pagoTrigger?: number;
+}
+
+export const ResumenPagosTab: React.FC<ResumenPagosTabProps> = ({ pagoTrigger = 0 }) => {
   const [loading, setLoading] = useState(true);
   const [kpiData, setKpiData] = useState<KPIData>({
     totalFacturas: 0,
@@ -78,10 +85,44 @@ export const ResumenPagosTab: React.FC = () => {
   });
 
   useEffect(() => {
-    // TODO: Cargar datos de KPI desde API
-    // dispatch(fetchKPIPagos())
-    setLoading(false);
-  }, []);
+    cargarKPIs();
+  }, [pagoTrigger]);
+
+  const cargarKPIs = async () => {
+    setLoading(true);
+    try {
+      const resultado = await paymentService.obtenerHistorialPagosCompleto();
+
+      if (resultado.pagos && Array.isArray(resultado.pagos)) {
+        const pagos: any[] = resultado.pagos;
+
+        // Calcular KPIs
+        const totalFacturas = new Set(pagos.map((p: any) => p.factura_id)).size;
+        const totalPagado = pagos
+          .filter((p: any) => p.estado_pago === 'completado')
+          .reduce((sum: number, p: any) => sum + parseFloat(String(p.monto_pagado)), 0);
+
+        const pagosProcesados = pagos.filter((p: any) => p.estado_pago === 'completado').length;
+
+        // Usar el total pagado como monto total (ya que solo cargamos pagos completados)
+        // y calcular porcentaje basado en facturas únicas
+        const porcentajePago = totalFacturas > 0 ? Math.round((pagosProcesados / (totalFacturas * 2)) * 100) : 0;
+
+        setKpiData({
+          totalFacturas,
+          totalMonto: totalPagado,
+          totalPagado,
+          totalPendiente: 0,
+          porcentajePago: Math.min(porcentajePago, 100),
+          pagosProcesados
+        });
+      }
+    } catch (err) {
+      console.error('Error al cargar KPIs:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -93,6 +134,19 @@ export const ResumenPagosTab: React.FC = () => {
 
   return (
     <Box>
+      {/* Botón de actualizar */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={cargarKPIs}
+          disabled={loading}
+          size="small"
+        >
+          Actualizar
+        </Button>
+      </Box>
+
       {/* Grilla de KPIs */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>

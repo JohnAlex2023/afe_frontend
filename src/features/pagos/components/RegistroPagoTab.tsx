@@ -23,7 +23,11 @@ import { fetchFacturasPendientes } from '../../../features/facturas/facturasSlic
 import type { FacturaPendiente } from '../../../types/factura.types';
 import { ModalRegistroPago } from '../../dashboard/components/ModalRegistroPago';
 
-export const RegistroPagoTab: React.FC = () => {
+interface RegistroPagoTabProps {
+  onPagoRegistrado?: () => void;
+}
+
+export const RegistroPagoTab: React.FC<RegistroPagoTabProps> = ({ onPagoRegistrado }) => {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const { pendientes, loading, error } = useAppSelector((state) => state.facturas);
@@ -60,6 +64,8 @@ export const RegistroPagoTab: React.FC = () => {
     if (user?.id) {
       dispatch(fetchFacturasPendientes(user.id));
     }
+    // Notificar al padre que un pago fue registrado
+    onPagoRegistrado?.();
   };
 
   if (loading) {

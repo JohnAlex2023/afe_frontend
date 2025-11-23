@@ -25,14 +25,16 @@ export enum MetodoPago {
 export interface Pago {
   id: number;
   factura_id: number;
-  monto_pagado: string; // Cantidad como string para evitar pérdida de precisión
+  numero_factura?: string; // Número de factura asociada (opcional, viene del historial completo)
+  proveedor?: string; // Razón social del proveedor (opcional, viene del historial completo)
+  monto_pagado: string | number; // Cantidad como string o number para evitar pérdida de precisión
   referencia_pago: string; // Identificador único del pago (CHQ-001, TRF-001, etc)
   metodo_pago: string;
   estado_pago: EstadoPago;
   procesado_por: string; // Email del contador que registró el pago
   fecha_pago: string; // ISO 8601 datetime
   creado_en: string;
-  actualizado_en: string;
+  actualizado_en?: string; // Opcional para compatibilidad con diferentes endpoints
 }
 
 /** Request para registrar un pago */
