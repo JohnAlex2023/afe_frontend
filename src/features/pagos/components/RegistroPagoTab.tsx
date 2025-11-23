@@ -1,208 +1,135 @@
 /**
  * RegistroPagoTab - Tab para registrar pagos
- * Aquí se usan los componentes existentes ModalRegistroPago y ModalHistorialPagos
- * Solo agregamos interfaz para seleccionar facturas aprobadas
+ * Interfaz simplificada que dirige al usuario a Facturas Pendientes
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Button,
-  CircularProgress,
-  Alert,
   Typography,
   Card,
   CardContent,
-  Grid,
-  TextField,
-  Autocomplete,
+  Stack,
+  Paper,
 } from '@mui/material';
-import { AddCircle, Refresh } from '@mui/icons-material';
-import type { FacturaPendiente } from '../../../types/factura.types';
-import { facturasService } from '../../facturas/services/facturas.service';
-import { ModalRegistroPago } from '../../dashboard/components/ModalRegistroPago';
+import { AddCircle, ArrowForward, CheckCircle } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { zentriaColors } from '../../../theme/colors';
 
 interface RegistroPagoTabProps {
   onPagoRegistrado?: () => void;
 }
 
 export const RegistroPagoTab: React.FC<RegistroPagoTabProps> = ({ onPagoRegistrado }) => {
-  // Estados locales
-  const [facturasAprobadas, setFacturasAprobadas] = useState<FacturaPendiente[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedFactura, setSelectedFactura] = useState<FacturaPendiente | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-
-  // Cargar facturas aprobadas desde API
-  const cargarFacturasAprobadas = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await facturasService.getFacturasPendientes();
-      setFacturasAprobadas(response.facturas);
-    } catch (err: any) {
-      console.error('Error cargando facturas aprobadas:', err);
-      setError(
-        err.response?.data?.detail ||
-          'Error al cargar las facturas aprobadas. Por favor intente nuevamente.'
-      );
-      setFacturasAprobadas([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    cargarFacturasAprobadas();
-  }, []);
-
-  const handleOpenModal = (factura: FacturaPendiente) => {
-    setSelectedFactura(factura);
-    setModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setSelectedFactura(null);
-  };
-
-  const handlePagoSuccess = async () => {
-    handleCloseModal();
-    // Refrescar lista de facturas aprobadas
-    await cargarFacturasAprobadas();
-    // Notificar al padre que un pago fue registrado para que refresque otros tabs
-    onPagoRegistrado?.();
-  };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
+  const navigate = useNavigate();
 
   return (
-    <Box>
-      {/* Información */}
-      <Card sx={{ mb: 3, bgcolor: '#f5f5f5' }} elevation={0}>
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            ℹ️ Cómo registrar un pago
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            1. Selecciona una factura aprobada del listado
-            <br />
-            2. Ingresa el monto a pagar, referencia (CHQ-001, TRF-ABC, etc.)
-            <br />
-            3. Selecciona método de pago (Cheque, Transferencia, Efectivo, Tarjeta)
-            <br />
-            4. El estado se actualizará automáticamente si la factura queda completamente pagada
-          </Typography>
-        </CardContent>
-      </Card>
-
-      {/* Botón de actualizar */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={cargarFacturasAprobadas}
-          disabled={loading}
-          size="small"
-        >
-          Actualizar Listado
-        </Button>
-      </Box>
-
-      {/* Selector de Factura */}
-      {facturasAprobadas.length > 0 ? (
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <Autocomplete
-              options={facturasAprobadas}
-              getOptionLabel={(option) =>
-                `${option.numero_factura} - ${option.proveedor} - $${option.monto.toLocaleString()}`
-              }
-              value={selectedFactura}
-              onChange={(_, value) => setSelectedFactura(value)}
-              renderInput={(params) => (
-                <TextField {...params} label="Selecciona una factura aprobada" />
-              )}
-              noOptionsText="No hay facturas aprobadas disponibles"
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+      <Paper
+        elevation={3}
+        sx={{
+          p: 6,
+          maxWidth: 600,
+          textAlign: 'center',
+          borderRadius: 3,
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #f9fafb 100%)',
+        }}
+      >
+        {/* Icono */}
+        <Box sx={{ mb: 3 }}>
+          <Box
+            sx={{
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              backgroundColor: `${zentriaColors.violeta.main}20`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 2,
+            }}
+          >
+            <AddCircle
+              sx={{
+                fontSize: 80,
+                color: zentriaColors.violeta.main,
+              }}
             />
-          </Grid>
+          </Box>
+        </Box>
 
-          {selectedFactura && (
-            <>
-              <Grid item xs={12} sm={6}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      Número de Factura
-                    </Typography>
-                    <Typography variant="h6">{selectedFactura.numero_factura}</Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+        {/* Título */}
+        <Typography variant="h5" fontWeight={700} sx={{ mb: 2, color: zentriaColors.violeta.main }}>
+          Registrar Pagos
+        </Typography>
 
-              <Grid item xs={12} sm={6}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography color="textSecondary" gutterBottom>
-                      Monto
-                    </Typography>
-                    <Typography variant="h6" sx={{ color: '#4caf50' }}>
-                      ${selectedFactura.monto.toLocaleString()}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+        {/* Descripción */}
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4, lineHeight: 1.6 }}>
+          Para registrar un pago, dirígete a <strong>Facturas Pendientes</strong> donde podrás:
+        </Typography>
 
-              <Grid item xs={12}>
-                <Button
-                  variant="contained"
-                  startIcon={<AddCircle />}
-                  onClick={() => handleOpenModal(selectedFactura)}
-                  sx={{
-                    background: `linear-gradient(135deg, #1976d2, #1565c0)`,
-                    width: '100%',
-                    py: 1.5,
-                    fontWeight: 600,
-                  }}
-                >
-                  Registrar Pago para {selectedFactura.numero_factura}
-                </Button>
-              </Grid>
-            </>
-          )}
-        </Grid>
-      ) : (
-        <Alert severity="info">
-          No hay facturas aprobadas disponibles para registrar pagos.
-          <br />
-          Las facturas aprobadas aparecerán aquí cuando estén listas para pago.
-        </Alert>
-      )}
+        {/* Pasos */}
+        <Stack spacing={2} sx={{ mb: 4, textAlign: 'left' }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+            <CheckCircle sx={{ color: zentriaColors.verde.main, flexShrink: 0, mt: 0.5 }} />
+            <Box>
+              <Typography variant="body2" fontWeight={600}>
+                Ver todas las facturas aprobadas
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Listado completo de facturas listas para pagar
+              </Typography>
+            </Box>
+          </Box>
 
-      {/* Modal */}
-      {selectedFactura && (
-        <ModalRegistroPago
-          isOpen={modalOpen}
-          onClose={handleCloseModal}
-          facturaId={selectedFactura.factura_id}
-          facturaNumero={selectedFactura.numero_factura}
-          totalFactura={selectedFactura.monto.toString()}
-          totalPagado="0"
-          pendientePagar={selectedFactura.monto.toString()}
-          onPagoSuccess={handlePagoSuccess}
-        />
-      )}
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+            <CheckCircle sx={{ color: zentriaColors.verde.main, flexShrink: 0, mt: 0.5 }} />
+            <Box>
+              <Typography variant="body2" fontWeight={600}>
+                Seleccionar una factura y registrar el pago
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Ingresa monto, método y otros detalles
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+            <CheckCircle sx={{ color: zentriaColors.verde.main, flexShrink: 0, mt: 0.5 }} />
+            <Box>
+              <Typography variant="body2" fontWeight={600}>
+                Confirmación automática de estado
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                El estado se actualiza automáticamente en todo el sistema
+              </Typography>
+            </Box>
+          </Box>
+        </Stack>
+
+        {/* Botón de acción */}
+        <Button
+          variant="contained"
+          size="large"
+          fullWidth
+          endIcon={<ArrowForward />}
+          onClick={() => navigate('/facturas-pendientes')}
+          sx={{
+            background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.violeta.dark})`,
+            py: 1.5,
+            fontWeight: 600,
+            fontSize: '1rem',
+            boxShadow: 2,
+            '&:hover': {
+              boxShadow: 4,
+            },
+          }}
+        >
+          Ir a Facturas Pendientes
+        </Button>
+      </Paper>
     </Box>
   );
 };
