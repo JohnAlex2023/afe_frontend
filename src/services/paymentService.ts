@@ -95,6 +95,23 @@ class PaymentService {
   }
 
   /**
+   * Obtener historial completo de pagos registrados
+   *
+   * @returns Lista de todos los pagos con detalles completos
+   */
+  async obtenerHistorialPagosCompleto(): Promise<any> {
+    try {
+      const response = await apiClient.get(
+        `/accounting/historial-pagos`
+      );
+
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Obtener historial de pagos para una factura
    *
    * @param facturaId - ID de la factura

@@ -19,20 +19,40 @@ import {
   TextField,
   Grid,
   Typography,
+  Button,
 } from '@mui/material';
-import { Search } from '@mui/icons-material';
+import { Search, Refresh } from '@mui/icons-material';
 import { zentriaColors } from '../../../theme/colors';
+import paymentService from '../../../services/paymentService';
+import { Pago } from '../../../types/payment.types';
 
 export const HistorialPagosTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [pagos, setPagos] = useState<any[]>([]);
+  const [pagos, setPagos] = useState<Pago[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Cargar historial de pagos desde API
-    // dispatch(fetchHistorialPagos())
-    setLoading(false);
+    cargarPagos();
   }, []);
+
+  const cargarPagos = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resultado = await paymentService.obtenerHistorialPagosCompleto();
+      if (resultado.pagos && Array.isArray(resultado.pagos)) {
+        setPagos(resultado.pagos);
+      } else {
+        setPagos([]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar historial de pagos');
+      setPagos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -42,11 +62,28 @@ export const HistorialPagosTab: React.FC = () => {
     );
   }
 
+  // Filtrar pagos por búsqueda
+  const pagosFiltrados = pagos.filter((pago) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      pago.numero_factura?.toLowerCase().includes(searchLower) ||
+      pago.referencia_pago?.toLowerCase().includes(searchLower) ||
+      pago.proveedor?.toLowerCase().includes(searchLower)
+    );
+  });
+
   return (
     <Box>
-      {/* Búsqueda */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12}>
+      {/* Error alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Búsqueda y controles */}
+      <Grid container spacing={2} sx={{ mb: 3 }} alignItems="flex-end">
+        <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
             placeholder="Buscar por número de factura, referencia, o proveedor..."
@@ -59,10 +96,21 @@ export const HistorialPagosTab: React.FC = () => {
             size="small"
           />
         </Grid>
+        <Grid item xs={12} sm={6} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh />}
+            onClick={cargarPagos}
+            disabled={loading}
+            size="small"
+          >
+            Actualizar
+          </Button>
+        </Grid>
       </Grid>
 
       {/* Tabla de Pagos */}
-      {pagos.length > 0 ? (
+      {pagosFiltrados.length > 0 ? (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -77,20 +125,32 @@ export const HistorialPagosTab: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {pagos.map((pago) => (
+              {pagosFiltrados.map((pago) => (
                 <TableRow key={pago.id} hover>
                   <TableCell sx={{ fontWeight: 600 }}>{pago.numero_factura}</TableCell>
-                  <TableCell>{pago.proveedor}</TableCell>
+                  <TableCell>{pago.proveedor || '-'}</TableCell>
                   <TableCell sx={{ color: zentriaColors.verde.main, fontWeight: 600 }}>
-                    ${pago.monto_pagado.toLocaleString()}
+                    ${typeof pago.monto_pagado === 'string' ? parseFloat(pago.monto_pagado).toLocaleString() : pago.monto_pagado.toLocaleString()}
                   </TableCell>
-                  <TableCell>{pago.referencia_pago}</TableCell>
-                  <TableCell>{pago.metodo_pago}</TableCell>
-                  <TableCell>{new Date(pago.fecha_pago).toLocaleDateString()}</TableCell>
+                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                    {pago.referencia_pago}
+                  </TableCell>
+                  <TableCell sx={{ textTransform: 'capitalize' }}>
+                    {pago.metodo_pago}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(pago.fecha_pago).toLocaleDateString('es-CO', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </TableCell>
                   <TableCell>
                     <Chip
-                      label={pago.estado === 'completado' ? 'Completado' : 'Pendiente'}
-                      color={pago.estado === 'completado' ? 'success' : 'warning'}
+                      label={pago.estado_pago === 'completado' ? '✓ Completado' : pago.estado_pago}
+                      color={pago.estado_pago === 'completado' ? 'success' : 'warning'}
                       size="small"
                       variant="outlined"
                     />
