@@ -102,15 +102,38 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
   const montoIngresado = watch('monto_pagado');
 
   // Validar que el monto no exceda el pendiente
+  // CRÍTICO: Validación robusta a prueba de fallos para evitar errores monetarios
   useEffect(() => {
     if (montoIngresado) {
       const monto = parseFloat(montoIngresado);
       const pendiente = parseFloat(pendientePagar);
 
+      // Validaciones defensivas
+      if (isNaN(monto)) {
+        setFormError('monto_pagado', {
+          type: 'custom',
+          message: 'Monto inválido'
+        });
+        return;
+      }
+
+      if (isNaN(pendiente)) {
+        setFormError('monto_pagado', {
+          type: 'custom',
+          message: 'Error al calcular monto pendiente. Recarga la página.'
+        });
+        return;
+      }
+
       if (monto > pendiente) {
         setFormError('monto_pagado', {
           type: 'custom',
-          message: `El monto no puede exceder el pendiente de $${pendientePagar}`
+          message: `El monto no puede exceder el pendiente de $${parseFloat(pendientePagar).toLocaleString('es-CO')}`
+        });
+      } else if (monto <= 0) {
+        setFormError('monto_pagado', {
+          type: 'custom',
+          message: 'El monto debe ser mayor a $0'
         });
       } else {
         // Limpiar el error si el monto es válido
@@ -125,6 +148,24 @@ export const ModalRegistroPago: React.FC<ModalRegistroPagoProps> = ({
     setSuccessMessage(null);
 
     try {
+      // SEGUNDA LÍNEA DE DEFENSA: Validación crítica antes de enviar
+      const montoFinal = parseFloat(data.monto_pagado);
+      const pendienteFinal = parseFloat(pendientePagar);
+
+      if (isNaN(montoFinal) || isNaN(pendienteFinal)) {
+        throw new Error('Error crítico en cálculo de montos. Contacta al administrador.');
+      }
+
+      if (montoFinal <= 0) {
+        throw new Error('El monto debe ser mayor a cero.');
+      }
+
+      if (montoFinal > pendienteFinal) {
+        throw new Error(
+          `Monto excede pendiente. Pendiente: $${pendienteFinal.toLocaleString('es-CO')} | Ingresado: $${montoFinal.toLocaleString('es-CO')}`
+        );
+      }
+
       // Enviar monto como string para que Pydantic lo convierta a Decimal (evita errores de precisión)
       const pagoRequest: PagoRequest = {
         monto_pagado: data.monto_pagado, // Se envía como string, el backend lo convierte a Decimal
