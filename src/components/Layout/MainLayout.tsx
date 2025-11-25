@@ -26,7 +26,6 @@ import {
   Store as StoreIcon,
   Email as EmailIcon,
   Assessment as AssessmentIcon,
-  Payment as PaymentIcon,
 } from '@mui/icons-material';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
@@ -43,11 +42,6 @@ const baseMenuItems = [
   { text: 'Por Revisar', icon: <DescriptionIcon />, path: '/facturas', roles: ['admin', 'responsable', 'viewer'] },
 ];
 
-// Menús para contadores - NUEVO 2025-11-18
-const contadorMenuItems = [
-  { text: 'Facturas Pendientes', icon: <AssessmentIcon />, path: '/contabilidad/pendientes', roles: ['contador'] },
-  { text: 'Gestión de Pagos', icon: <PaymentIcon />, path: '/pagos', roles: ['contador', 'admin'] },
-];
 
 // Menús adicionales para administradores
 const adminMenuItems = [
@@ -87,23 +81,10 @@ function MainLayout() {
   };
 
   // Filtrar menús según el rol del usuario
-  // Admin y viewer ven los menús adicionales (con diferentes permisos)
-  // Contador ve su menú especializado (incluyendo Gestión de Pagos)
-  // Admin también ve Gestión de Pagos (del menú de contador)
   let allMenuItems = [...baseMenuItems];
 
   if (user?.rol === 'admin' || user?.rol === 'viewer') {
     allMenuItems = [...allMenuItems, ...adminMenuItems];
-  } else if (user?.rol === 'contador') {
-    allMenuItems = [...allMenuItems, ...contadorMenuItems];
-  }
-
-  // Si el usuario es ADMIN, agregar también el item de Gestión de Pagos
-  if (user?.rol === 'admin') {
-    const pagosItem = contadorMenuItems.find(item => item.path === '/pagos');
-    if (pagosItem && !allMenuItems.find(item => item.path === '/pagos')) {
-      allMenuItems.push(pagosItem);
-    }
   }
 
   const filteredMenuItems = allMenuItems.filter(item => user && item.roles.includes(user.rol));
