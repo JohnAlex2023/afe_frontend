@@ -92,7 +92,7 @@ function ResponsablesPage() {
     setLoading(true);
     try {
       const [responsablesRes, rolesRes] = await Promise.all([
-        apiClient.get('/responsables/'),
+        apiClient.get('/usuarios/'),
         apiClient.get('/roles/'),
       ]);
       setResponsables(responsablesRes.data);
@@ -148,10 +148,10 @@ function ResponsablesPage() {
         if (!payload.password) {
           delete (payload as any).password;
         }
-        await apiClient.put(`/responsables/${editingId}`, payload);
+        await apiClient.put(`/usuarios/${editingId}`, payload);
       } else {
         // Crear
-        await apiClient.post('/responsables/', payload);
+        await apiClient.post('/usuarios/', payload);
       }
 
       handleCloseDialog();
@@ -165,7 +165,7 @@ function ResponsablesPage() {
     if (!confirm('¿Está seguro de eliminar este usuario?')) return;
 
     try {
-      await apiClient.delete(`/responsables/${id}`);
+      await apiClient.delete(`/usuarios/${id}`);
       loadData();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al eliminar usuario');

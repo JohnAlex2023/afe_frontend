@@ -133,7 +133,7 @@ export const getResponsables = async (params?: {
   skip?: number;
   limit?: number;
 }): Promise<Responsable[]> => {
-  const response = await apiClient.get('/responsables/', { params });
+  const response = await apiClient.get('/usuarios/', { params });
   return response.data;
 };
 

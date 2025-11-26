@@ -1,0 +1,1 @@
+// NUEVO: Estados para flujo 2-pasos  const [loginStep, setLoginStep] = useState<'paso1' | 'paso2'>('paso1');  const [sedes, setSedes] = useState<any[]>([]);  const [selectedSedeId, setSelectedSedeId] = useState<number | null>(null);  const [usuarioId, setUsuarioId] = useState<number | null>(null);  const [usuarioNombre, setUsuarioNombre] = useState('');
