@@ -43,7 +43,7 @@ import {
 } from '../proveedoresSlice';
 import {
   getResponsables,
-  createAsignacionesNitBulk,
+  createAsignacionesNitBulkFromConfig,
 } from '../../../services/asignacionNit.api';
 import { Responsable } from '../../../types/responsable.types';
 import { zentriaColors } from '../../../theme/colors';
@@ -297,7 +297,7 @@ function AsignacionesTab() {
       };
       console.log('Datos completos a enviar:', requestData);
 
-      const response = await createAsignacionesNitBulk(requestData);
+      const response = await createAsignacionesNitBulkFromConfig(requestData);
 
       console.log('Respuesta del backend:', response);
       console.log('Errores del backend:', response.errores);

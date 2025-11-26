@@ -164,14 +164,31 @@ export const createAsignacionNit = async (
 
 /**
  * Crear multiples asignaciones en una sola operacion (bulk)
+ * Usa /bulk-simple: requiere que los NITs existan en proveedores
  *
  * @param data - Datos para creacion masiva
  * @returns Resultado de la operacion
+ * @deprecated Usar createAsignacionesNitBulkFromConfig en su lugar
  */
 export const createAsignacionesNitBulk = async (
   data: { responsable_id: number; nits: string }
 ): Promise<BulkCreateResponse> => {
   const response = await apiClient.post('/asignacion-nit/bulk-simple', data);
+  return response.data;
+};
+
+/**
+ * Crear multiples asignaciones desde nit_configuracion (bulk)
+ * Usa /bulk-nit-config: NO requiere que los NITs existan en proveedores
+ * Valida contra nit_configuracion en su lugar
+ *
+ * @param data - Datos para creacion masiva (responsable_id y NITs como string)
+ * @returns Resultado de la operacion
+ */
+export const createAsignacionesNitBulkFromConfig = async (
+  data: { responsable_id: number; nits: string; permitir_aprobacion_automatica?: boolean }
+): Promise<BulkCreateResponse> => {
+  const response = await apiClient.post('/asignacion-nit/bulk-nit-config', data);
   return response.data;
 };
 
@@ -288,6 +305,7 @@ export default {
   getAsignacionNit,
   createAsignacionNit,
   createAsignacionesNitBulk,
+  createAsignacionesNitBulkFromConfig,
   updateAsignacionNit,
   deleteAsignacionNit,
 
