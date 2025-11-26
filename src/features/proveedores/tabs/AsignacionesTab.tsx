@@ -283,31 +283,17 @@ function AsignacionesTab() {
 
     try {
       // bulkProveedores ya contiene solo los NITs VÁLIDOS
-      // Parsear los NITs para la API
-      const nitsData = bulkProveedores.map((nit) => {
-        // Buscar el proveedor en la lista por NIT
-        const proveedorExistente = proveedores.find((p) => p.nit === nit);
-
-        if (!proveedorExistente) {
-          console.error(`NIT ${nit} no encontrado en proveedores, esto no debería pasar`);
-        }
-
-        return {
-          nit,
-          nombre_proveedor: proveedorExistente?.razon_social || 'Sin nombre',
-          area: proveedorExistente?.area || 'General',
-        };
-      });
+      // Convertir NITs a string separado por comas para el endpoint bulk-simple
+      const nitsString = bulkProveedores.join(',');
 
       console.log('==== DEBUG ASIGNACIÓN MASIVA ====');
-      console.log('NITs a asignar:', nitsData);
+      console.log('NITs a asignar:', nitsString);
       console.log('Responsable ID:', bulkResponsableId);
 
       const requestData = {
         responsable_id: bulkResponsableId,
-        nits: nitsData,
+        nits: nitsString,
         permitir_aprobacion_automatica: true,
-        activo: true,
       };
       console.log('Datos completos a enviar:', requestData);
 

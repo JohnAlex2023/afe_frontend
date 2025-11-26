@@ -169,9 +169,9 @@ export const createAsignacionNit = async (
  * @returns Resultado de la operacion
  */
 export const createAsignacionesNitBulk = async (
-  data: AsignacionNitBulkCreate
+  data: { responsable_id: number; nits: string }
 ): Promise<BulkCreateResponse> => {
-  const response = await apiClient.post('/asignacion-nit/bulk', data);
+  const response = await apiClient.post('/asignacion-nit/bulk-simple', data);
   return response.data;
 };
 
