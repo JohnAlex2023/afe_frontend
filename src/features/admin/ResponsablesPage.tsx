@@ -318,7 +318,6 @@ function ResponsablesPage() {
             onChange={(e) => setFormData({ ...formData, usuario: e.target.value })}
             margin="normal"
             required
-            disabled={!!editingId}
           />
           <TextField
             fullWidth
