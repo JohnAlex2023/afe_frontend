@@ -340,8 +340,7 @@ function AsignacionesTab() {
       }
 
       if (response.omitidas > 0) {
-        mensajeCompleto += `⚠ ${response.omitidas} NIT(s) ya estaban asignados a este responsable y fueron omitidos.\n\n`;
-        mensajeCompleto += `NOTA: Si no ve estas asignaciones en la lista, es posible que estén inactivas o huérfanas. Contacte al administrador del sistema para limpiar asignaciones inactivas.\n\n`;
+        mensajeCompleto += `⚠ ${response.omitidas} NIT(s) ya estaban asignados activos a este responsable y fueron omitidos.\n\n`;
       }
 
       if (response.errores && response.errores.length > 0) {
