@@ -625,7 +625,7 @@ function AsignacionesTab() {
               onChange={(_, newValue) => setBulkResponsableId(newValue?.id || null)}
               renderInput={(params) => <TextField {...params} label="Responsable" required />}
             />
-            {/* Autocomplete de NITs existentes */}
+            {/* Autocomplete de NITs - Validación simplificada, backend valida contra nit_configuracion */}
             <Autocomplete
               multiple
               freeSolo
@@ -650,14 +650,11 @@ function AsignacionesTab() {
                 // Eliminar duplicados
                 const nitsUnicos = [...new Set(nitsToProcess)];
 
-                // Validar y validar cada NIT contra proveedores registrados
-                const nitsNoEncontrados: string[] = [];
-                const nitsDuplicados: string[] = [];
+                // Validación mínima: solo formato básico y duplicados en asignaciones actuales
                 const nitsValidos = nitsUnicos.filter((nitInput) => {
                   try {
                     // Validar formato básico del NIT
                     if (!nitValidationService.isValidBasicFormat(nitInput)) {
-                      nitsNoEncontrados.push(nitInput);
                       return false;
                     }
 
@@ -667,47 +664,25 @@ function AsignacionesTab() {
                         (a) => a.nit === nitInput && a.responsable_id === bulkResponsableId && a.activo
                       );
                       if (yaAsignado) {
-                        nitsDuplicados.push(nitInput);
                         return false;
                       }
                     }
 
-                    // Buscar en proveedores con el NIT
-                    const existe = proveedores.some((p) => p.nit === nitInput);
-                    if (!existe) {
-                      nitsNoEncontrados.push(nitInput);
-                    }
-                    return existe ? nitInput : false;
+                    // Aceptar el NIT para enviarlo al backend
+                    // El backend validará contra nit_configuracion
+                    return true;
                   } catch (error) {
-                    // Si hay error, agregar a rechazados
-                    nitsNoEncontrados.push(nitInput);
                     return false;
                   }
                 });
 
-                // Guardar NITs rechazados en el estado para mostrarlos después
-                setBulkNitsRechazados([...nitsNoEncontrados, ...nitsDuplicados]);
-
-                // Construir mensaje de error
-                const mensajesParte = [];
-                if (nitsNoEncontrados.length > 0) {
-                  mensajesParte.push(
-                    `Los siguientes NITs no están registrados como proveedores: ${nitsNoEncontrados.join(', ')}`
-                  );
-                }
-                if (nitsDuplicados.length > 0) {
-                  mensajesParte.push(
-                    `Los siguientes NITs ya están asignados a este responsable: ${nitsDuplicados.join(', ')}`
-                  );
-                }
-
-                if (mensajesParte.length > 0) {
-                  setBulkDialogError(mensajesParte.join('. '));
-                } else {
+                // Limpiar errores cuando el usuario ingresa NITs válidos
+                if (nitsValidos.length > 0) {
                   setBulkDialogError(null);
                 }
 
                 setBulkProveedores(nitsValidos);
+                setBulkNitsRechazados([]);
               }}
               ListboxProps={{
                 style: { maxHeight: '300px' },
@@ -859,14 +834,11 @@ function AsignacionesTab() {
                           .map((nit) => nit.trim())
                           .filter((nit) => nit.length > 0);
 
-                        // Validar NITs
-                        const nitsNoEncontrados: string[] = [];
-                        const nitsDuplicados: string[] = [];
+                        // Validación mínima: solo formato básico y duplicados en asignaciones actuales
                         const nitsValidos = nits.filter((nitInput) => {
                           try {
                             // Validar formato básico del NIT
                             if (!nitValidationService.isValidBasicFormat(nitInput)) {
-                              nitsNoEncontrados.push(nitInput);
                               return false;
                             }
 
@@ -876,20 +848,14 @@ function AsignacionesTab() {
                                 (a) => a.nit === nitInput && a.responsable_id === bulkResponsableId && a.activo
                               );
                               if (yaAsignado) {
-                                nitsDuplicados.push(nitInput);
                                 return false;
                               }
                             }
 
-                            // Buscar en proveedores con el NIT
-                            const existe = proveedores.some((p) => p.nit === nitInput);
-                            if (!existe) {
-                              nitsNoEncontrados.push(nitInput);
-                            }
-                            return existe ? nitInput : false;
+                            // Aceptar el NIT para enviarlo al backend
+                            // El backend validará contra nit_configuracion
+                            return true;
                           } catch (error) {
-                            // Si hay error, agregar a rechazados
-                            nitsNoEncontrados.push(nitInput);
                             return false;
                           }
                         });
@@ -898,28 +864,12 @@ function AsignacionesTab() {
                         const nitsUnicos = [...new Set([...bulkProveedores, ...nitsValidos])];
                         setBulkProveedores(nitsUnicos);
 
-                        // Guardar NITs rechazados (acumular con los existentes)
-                        const rechazadosUnicos = [...new Set([...bulkNitsRechazados, ...nitsNoEncontrados, ...nitsDuplicados])];
-                        setBulkNitsRechazados(rechazadosUnicos);
-
-                        // Construir mensaje de error
-                        const mensajesParte = [];
-                        if (nitsNoEncontrados.length > 0) {
-                          mensajesParte.push(
-                            `Los siguientes NITs no están registrados: ${nitsNoEncontrados.join(', ')}`
-                          );
-                        }
-                        if (nitsDuplicados.length > 0) {
-                          mensajesParte.push(
-                            `Los siguientes NITs ya están asignados a este responsable: ${nitsDuplicados.join(', ')}`
-                          );
-                        }
-
-                        if (mensajesParte.length > 0) {
-                          setBulkDialogError(mensajesParte.join('. '));
-                        } else {
+                        // Limpiar errores cuando hay NITs válidos
+                        if (nitsUnicos.length > 0) {
                           setBulkDialogError(null);
                         }
+
+                        setBulkNitsRechazados([]);
 
                         // Limpiar el input y el estado
                         (e.target as HTMLInputElement).value = '';
