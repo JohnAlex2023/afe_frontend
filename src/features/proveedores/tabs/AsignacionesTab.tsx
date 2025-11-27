@@ -218,25 +218,17 @@ function AsignacionesTab() {
           .map((nit) => nit.trim())
           .filter((nit) => nit.length > 0);
 
-        // Validar y normalizar NITs
-        const nitsNoEncontrados: string[] = [];
+        // Validación mínima: solo formato básico del NIT
+        // El backend validará contra nit_configuracion
         const nitsValidos = nits.filter((nitInput) => {
           try {
-            // Validar formato básico del NIT (ahora usando servicio)
+            // Validar formato básico del NIT
             if (!nitValidationService.isValidBasicFormat(nitInput)) {
-              nitsNoEncontrados.push(nitInput);
               return false;
             }
-
-            // Buscar en proveedores con el NIT (el backend lo habrá normalizado)
-            const existe = proveedores.some((p) => p.nit === nitInput);
-            if (!existe) {
-              nitsNoEncontrados.push(nitInput);
-            }
-            return existe ? nitInput : false;
+            // Aceptar el NIT - backend lo validará contra nit_configuracion
+            return true;
           } catch (error) {
-            // Si hay error, agregar a rechazados
-            nitsNoEncontrados.push(nitInput);
             return false;
           }
         });
@@ -244,12 +236,8 @@ function AsignacionesTab() {
         // Agregar a los NITs existentes (sin duplicados)
         const nitsUnicos = [...new Set([...bulkProveedores, ...nitsValidos])];
 
-        // Guardar NITs rechazados (acumular con los existentes)
-        const rechazadosUnicos = [...new Set([...bulkNitsRechazados, ...nitsNoEncontrados])];
-
         // Actualizar estados
         setBulkProveedores(nitsUnicos);
-        setBulkNitsRechazados(rechazadosUnicos);
         setHasPendingInput(false);
 
         // Limpiar el input
@@ -257,7 +245,7 @@ function AsignacionesTab() {
 
         // Si no hay NITs válidos después de procesar, mostrar error
         if (nitsUnicos.length === 0) {
-          setBulkDialogError('Ninguno de los NITs ingresados está registrado como proveedor.');
+          setBulkDialogError('Los NITs ingresados no tienen un formato válido.');
           return;
         }
 
