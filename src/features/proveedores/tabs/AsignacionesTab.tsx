@@ -92,6 +92,50 @@ function AsignacionesTab() {
     loadResponsables();
   }, []);
 
+  /**
+   * Valida y normaliza un array de NITs
+   * Reutilizable en todos los caminos de entrada (onChange, onKeyDown, handleBulkSubmit)
+   * @param nitsInput - Array de NITs a normalizar (con o sin DV)
+   * @returns Array con NITs normalizados (solo los válidos)
+   */
+  const normalizarNits = async (nitsInput: string[]): Promise<string[]> => {
+    const nitsNormalizados: string[] = [];
+
+    for (const nitInput of nitsInput) {
+      try {
+        // Validación básica rápida antes de llamada al backend
+        if (!nitValidationService.isValidBasicFormat(nitInput)) {
+          continue;
+        }
+
+        // Validar y normalizar a través del backend (calcula DV DIAN)
+        const validationResult = await nitValidationService.validateNit(nitInput);
+        if (!validationResult.isValid || !validationResult.normalizedNit) {
+          continue;
+        }
+
+        const nitNormalizado = validationResult.normalizedNit;
+
+        // Verificar si el NIT ya está asignado a este responsable
+        if (bulkResponsableId) {
+          const yaAsignado = asignaciones.some(
+            (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
+          );
+          if (yaAsignado) {
+            continue;
+          }
+        }
+
+        nitsNormalizados.push(nitNormalizado);
+      } catch (error) {
+        console.error(`Error validando NIT ${nitInput}:`, error);
+        continue;
+      }
+    }
+
+    return nitsNormalizados;
+  };
+
   const loadResponsables = async () => {
     try {
       const data = await getResponsables({ limit: 1000 });
@@ -218,20 +262,8 @@ function AsignacionesTab() {
           .map((nit) => nit.trim())
           .filter((nit) => nit.length > 0);
 
-        // Validación mínima: solo formato básico del NIT
-        // El backend validará contra nit_configuracion
-        const nitsValidos = nits.filter((nitInput) => {
-          try {
-            // Validar formato básico del NIT
-            if (!nitValidationService.isValidBasicFormat(nitInput)) {
-              return false;
-            }
-            // Aceptar el NIT - backend lo validará contra nit_configuracion
-            return true;
-          } catch (error) {
-            return false;
-          }
-        });
+        // Usar función centralizada de normalización
+        const nitsValidos = await normalizarNits(nits);
 
         // Agregar a los NITs existentes (sin duplicados)
         const nitsUnicos = [...new Set([...bulkProveedores, ...nitsValidos])];
@@ -638,40 +670,8 @@ function AsignacionesTab() {
                 // Eliminar duplicados
                 const nitsUnicos = [...new Set(nitsToProcess)];
 
-                // Validar y normalizar NITs (calcula DV via backend)
-                const nitsNormalizados: string[] = [];
-                for (const nitInput of nitsUnicos) {
-                  try {
-                    // Validación básica rápida antes de hacer llamada al backend
-                    if (!nitValidationService.isValidBasicFormat(nitInput)) {
-                      continue;
-                    }
-
-                    // Validar y normalizar a través del backend (calcula DV DIAN)
-                    const validationResult = await nitValidationService.validateNit(nitInput);
-                    if (!validationResult.isValid || !validationResult.normalizedNit) {
-                      continue;
-                    }
-
-                    const nitNormalizado = validationResult.normalizedNit;
-
-                    // Verificar si el NIT ya está asignado a este responsable
-                    if (bulkResponsableId) {
-                      const yaAsignado = asignaciones.some(
-                        (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
-                      );
-                      if (yaAsignado) {
-                        continue;
-                      }
-                    }
-
-                    // Agregar NIT normalizado
-                    nitsNormalizados.push(nitNormalizado);
-                  } catch (error) {
-                    console.error(`Error validando NIT ${nitInput}:`, error);
-                    continue;
-                  }
-                }
+                // Usar función centralizada de normalización
+                const nitsNormalizados = await normalizarNits(nitsUnicos);
 
                 // Limpiar errores cuando el usuario ingresa NITs válidos
                 if (nitsNormalizados.length > 0) {
@@ -827,7 +827,7 @@ function AsignacionesTab() {
                     const inputValue = (e.target as HTMLInputElement).value;
                     setHasPendingInput(inputValue.includes(','));
                   }}
-                  onKeyDown={(e) => {
+                  onKeyDown={async (e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       const inputValue = (e.target as HTMLInputElement).value;
@@ -839,31 +839,8 @@ function AsignacionesTab() {
                           .map((nit) => nit.trim())
                           .filter((nit) => nit.length > 0);
 
-                        // Validación mínima: solo formato básico y duplicados en asignaciones actuales
-                        const nitsValidos = nits.filter((nitInput) => {
-                          try {
-                            // Validar formato básico del NIT
-                            if (!nitValidationService.isValidBasicFormat(nitInput)) {
-                              return false;
-                            }
-
-                            // Verificar si el NIT ya está asignado a este responsable
-                            if (bulkResponsableId) {
-                              const yaAsignado = asignaciones.some(
-                                (a) => a.nit === nitInput && a.responsable_id === bulkResponsableId && a.activo
-                              );
-                              if (yaAsignado) {
-                                return false;
-                              }
-                            }
-
-                            // Aceptar el NIT para enviarlo al backend
-                            // El backend validará contra nit_configuracion
-                            return true;
-                          } catch (error) {
-                            return false;
-                          }
-                        });
+                        // Usar función centralizada de normalización
+                        const nitsValidos = await normalizarNits(nits);
 
                         // Agregar a los NITs existentes (sin duplicados)
                         const nitsUnicos = [...new Set([...bulkProveedores, ...nitsValidos])];
