@@ -4,7 +4,7 @@
  * @version 2.0 - Migrado a asignacion-nit
  * @date 2025-10-19
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import nitValidationService from '../../../services/nitValidation.service';
 import {
   Box,
@@ -94,47 +94,51 @@ function AsignacionesTab() {
 
   /**
    * Valida y normaliza un array de NITs
+   * Memorizada con useCallback para evitar re-creación innecesaria
    * Reutilizable en todos los caminos de entrada (onChange, onKeyDown, handleBulkSubmit)
    * @param nitsInput - Array de NITs a normalizar (con o sin DV)
    * @returns Array con NITs normalizados (solo los válidos)
    */
-  const normalizarNits = async (nitsInput: string[]): Promise<string[]> => {
-    const nitsNormalizados: string[] = [];
+  const normalizarNits = useCallback(
+    async (nitsInput: string[]): Promise<string[]> => {
+      const nitsNormalizados: string[] = [];
 
-    for (const nitInput of nitsInput) {
-      try {
-        // Validación básica rápida antes de llamada al backend
-        if (!nitValidationService.isValidBasicFormat(nitInput)) {
-          continue;
-        }
-
-        // Validar y normalizar a través del backend (calcula DV DIAN)
-        const validationResult = await nitValidationService.validateNit(nitInput);
-        if (!validationResult.isValid || !validationResult.normalizedNit) {
-          continue;
-        }
-
-        const nitNormalizado = validationResult.normalizedNit;
-
-        // Verificar si el NIT ya está asignado a este responsable
-        if (bulkResponsableId) {
-          const yaAsignado = asignaciones.some(
-            (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
-          );
-          if (yaAsignado) {
+      for (const nitInput of nitsInput) {
+        try {
+          // Validación básica rápida antes de llamada al backend
+          if (!nitValidationService.isValidBasicFormat(nitInput)) {
             continue;
           }
+
+          // Validar y normalizar a través del backend (calcula DV DIAN)
+          const validationResult = await nitValidationService.validateNit(nitInput);
+          if (!validationResult.isValid || !validationResult.normalizedNit) {
+            continue;
+          }
+
+          const nitNormalizado = validationResult.normalizedNit;
+
+          // Verificar si el NIT ya está asignado a este responsable
+          if (bulkResponsableId) {
+            const yaAsignado = asignaciones.some(
+              (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
+            );
+            if (yaAsignado) {
+              continue;
+            }
+          }
+
+          nitsNormalizados.push(nitNormalizado);
+        } catch (error) {
+          console.error(`Error validando NIT ${nitInput}:`, error);
+          continue;
         }
-
-        nitsNormalizados.push(nitNormalizado);
-      } catch (error) {
-        console.error(`Error validando NIT ${nitInput}:`, error);
-        continue;
       }
-    }
 
-    return nitsNormalizados;
-  };
+      return nitsNormalizados;
+    },
+    [bulkResponsableId, asignaciones]
+  );
 
   const loadResponsables = async () => {
     try {
@@ -248,6 +252,8 @@ function AsignacionesTab() {
 
   const handleBulkSubmit = async () => {
     // PRIMERO: Procesar cualquier input pendiente en el campo de texto
+    let nitsAEnviar = bulkProveedores;
+
     if (hasPendingInput) {
       const autocompleteInput = document.querySelector<HTMLInputElement>(
         'input[placeholder*="NITs separados por coma"]'
@@ -268,22 +274,17 @@ function AsignacionesTab() {
         // Agregar a los NITs existentes (sin duplicados)
         const nitsUnicos = [...new Set([...bulkProveedores, ...nitsValidos])];
 
-        // Actualizar estados
-        setBulkProveedores(nitsUnicos);
-        setHasPendingInput(false);
-
-        // Limpiar el input
-        autocompleteInput.value = '';
-
         // Si no hay NITs válidos después de procesar, mostrar error
         if (nitsUnicos.length === 0) {
           setBulkDialogError('Los NITs ingresados no tienen un formato válido.');
           return;
         }
 
-        // Esperar un tick para que los estados se actualicen
-        setTimeout(() => handleBulkSubmit(), 50);
-        return;
+        // Usar los NITs procesados para enviar
+        nitsAEnviar = nitsUnicos;
+
+        // Limpiar el input
+        autocompleteInput.value = '';
       }
     }
 
@@ -293,7 +294,7 @@ function AsignacionesTab() {
       return;
     }
 
-    if (bulkProveedores.length === 0) {
+    if (nitsAEnviar.length === 0) {
       setBulkDialogError('Debe seleccionar o ingresar al menos un NIT válido');
       return;
     }
@@ -302,9 +303,9 @@ function AsignacionesTab() {
     setBulkDialogError(null);
 
     try {
-      // bulkProveedores ya contiene solo los NITs VÁLIDOS
-      // Convertir NITs a string separado por comas para el endpoint bulk-simple
-      const nitsString = bulkProveedores.join(',');
+      // nitsAEnviar contiene solo los NITs VÁLIDOS (incluyendo los del input pendiente si existe)
+      // Convertir NITs a string separado por comas para el endpoint bulk-nit-config
+      const nitsString = nitsAEnviar.join(',');
 
       console.log('==== DEBUG ASIGNACIÓN MASIVA ====');
       console.log('NITs a asignar:', nitsString);
@@ -343,15 +344,16 @@ function AsignacionesTab() {
         mensajeCompleto += `NOTA: Si no ve estas asignaciones en la lista, es posible que estén inactivas o huérfanas. Contacte al administrador del sistema para limpiar asignaciones inactivas.\n\n`;
       }
 
-      if (bulkNitsRechazados.length > 0) {
-        mensajeCompleto += `✗ Los siguientes NITs NO fueron asignados porque no están registrados:\n\n${bulkNitsRechazados.join(', ')}\n\nPor favor, regístrelos primero en Gestión de Proveedores → Proveedores.`;
+      if (response.errores && response.errores.length > 0) {
+        const nitsConError = response.errores.map((e: any) => e.nit || e).join(', ');
+        mensajeCompleto += `✗ Los siguientes NITs NO fueron asignados:\n\n${nitsConError}\n\nVerifique que estén registrados en nit_configuracion.`;
       }
 
       // Cerrar el modal de asignación ANTES de mostrar mensajes
       handleCloseBulkDialog();
 
-      // Si hay mensajes de advertencia o NITs rechazados, mostrar modal
-      if (response.omitidas > 0 || bulkNitsRechazados.length > 0 || response.reactivadas > 0) {
+      // Si hay mensajes de advertencia o errores, mostrar modal
+      if (response.omitidas > 0 || (response.errores && response.errores.length > 0) || response.reactivadas > 0) {
         setWarningMessage(mensajeCompleto.trim());
         setOpenWarningDialog(true);
       } else if (response.creadas > 0) {
