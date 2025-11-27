@@ -622,7 +622,7 @@ function AsignacionesTab() {
               options={proveedores.map((p) => p.nit)}
               getOptionLabel={(option) => option}
               value={bulkProveedores}
-              onChange={(_, newValue) => {
+              onChange={async (_, newValue) => {
                 // Procesar NITs (pueden venir pegados con comas o seleccionados)
                 const nitsToProcess = newValue.flatMap((nit) => {
                   // Si contiene comas, separar múltiples NITs
@@ -638,52 +638,69 @@ function AsignacionesTab() {
                 // Eliminar duplicados
                 const nitsUnicos = [...new Set(nitsToProcess)];
 
-                // Validación mínima: solo formato básico y duplicados en asignaciones actuales
-                const nitsValidos = nitsUnicos.filter((nitInput) => {
+                // Validar y normalizar NITs (calcula DV via backend)
+                const nitsNormalizados: string[] = [];
+                for (const nitInput of nitsUnicos) {
                   try {
-                    // Validar formato básico del NIT
+                    // Validación básica rápida antes de hacer llamada al backend
                     if (!nitValidationService.isValidBasicFormat(nitInput)) {
-                      return false;
+                      continue;
                     }
+
+                    // Validar y normalizar a través del backend (calcula DV DIAN)
+                    const validationResult = await nitValidationService.validateNit(nitInput);
+                    if (!validationResult.isValid || !validationResult.normalizedNit) {
+                      continue;
+                    }
+
+                    const nitNormalizado = validationResult.normalizedNit;
 
                     // Verificar si el NIT ya está asignado a este responsable
                     if (bulkResponsableId) {
                       const yaAsignado = asignaciones.some(
-                        (a) => a.nit === nitInput && a.responsable_id === bulkResponsableId && a.activo
+                        (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
                       );
                       if (yaAsignado) {
-                        return false;
+                        continue;
                       }
                     }
 
-                    // Aceptar el NIT para enviarlo al backend
-                    // El backend validará contra nit_configuracion
-                    return true;
+                    // Agregar NIT normalizado
+                    nitsNormalizados.push(nitNormalizado);
                   } catch (error) {
-                    return false;
+                    console.error(`Error validando NIT ${nitInput}:`, error);
+                    continue;
                   }
-                });
+                }
 
                 // Limpiar errores cuando el usuario ingresa NITs válidos
-                if (nitsValidos.length > 0) {
+                if (nitsNormalizados.length > 0) {
                   setBulkDialogError(null);
                 }
 
-                setBulkProveedores(nitsValidos);
+                setBulkProveedores(nitsNormalizados);
                 setBulkNitsRechazados([]);
               }}
               ListboxProps={{
                 style: { maxHeight: '300px' },
               }}
               renderTags={(value, getTagProps) =>
-                value.map((nit, index) => {
-                  const proveedor = proveedores.find((p) => p.nit === nit);
+                value.map((nitNormalizado, index) => {
+                  // Buscar proveedor por NIT normalizado (que ya incluye DV)
+                  // Si no encuentra, intentar buscar sin DV (compatibilidad)
+                  let proveedor = proveedores.find((p) => p.nit === nitNormalizado);
+
+                  if (!proveedor && nitNormalizado.includes('-')) {
+                    // Intentar buscar sin DV
+                    const nitSinDv = nitNormalizado.split('-')[0];
+                    proveedor = proveedores.find((p) => p.nit?.includes(nitSinDv));
+                  }
 
                   return (
                     <Chip
                       {...getTagProps({ index })}
-                      key={nit}
-                      label={`${nit} - ${proveedor?.razon_social || 'N/A'}`}
+                      key={nitNormalizado}
+                      label={`${nitNormalizado} - ${proveedor?.razon_social || 'No registrado'}`}
                       color="primary"
                       variant="outlined"
                     />
