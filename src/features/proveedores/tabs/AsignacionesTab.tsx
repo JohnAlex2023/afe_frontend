@@ -245,11 +245,19 @@ function AsignacionesTab() {
 
       if (isDuplicateError) {
         // Mostrar advertencia elegante para duplicados
-        const nitMatch = detail.match(/(\d{1,9}-\d)/);
-        const nitDisplay = nitMatch ? nitMatch[1] : '';
+        // Intentar extraer NIT del patrón "NIT_DUPLICADO: XXXXXXXXX-D"
+        let nitDisplay = '';
+        const nitDuplicadoMatch = detail.match(/NIT_DUPLICADO:\s*(\d{1,11}-\d)/);
+        if (nitDuplicadoMatch) {
+          nitDisplay = nitDuplicadoMatch[1];
+        } else {
+          // Fallback: buscar cualquier patrón de NIT (XXXXXXXXX-D con hasta 11 dígitos)
+          const nitMatch = detail.match(/(\d{1,11}-\d)/);
+          nitDisplay = nitMatch ? nitMatch[1] : '';
+        }
 
         setDuplicateNit(nitDisplay);
-        setWarningMessage('NIT ya registrado');
+        setWarningMessage(`NIT ya registrado: ${nitDisplay}`);
         setOpenWarningDialog(true);
       } else {
         // Otros errores se muestran como error
