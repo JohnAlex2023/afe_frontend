@@ -103,16 +103,23 @@ function AsignacionesTab() {
     async (nitsInput: string[]): Promise<string[]> => {
       const nitsNormalizados: string[] = [];
 
+      console.log('[normalizarNits] Iniciando normalización de', nitsInput.length, 'NITs');
+      console.log('[normalizarNits] bulkResponsableId:', bulkResponsableId);
+
       for (const nitInput of nitsInput) {
         try {
           // Validación básica rápida antes de llamada al backend
           if (!nitValidationService.isValidBasicFormat(nitInput)) {
+            console.log(`[normalizarNits] SKIP - Basic format failed: ${nitInput}`);
             continue;
           }
 
           // Validar y normalizar a través del backend (calcula DV DIAN)
           const validationResult = await nitValidationService.validateNit(nitInput);
+          console.log(`[normalizarNits] validateNit(${nitInput}) =`, validationResult);
+
           if (!validationResult.isValid || !validationResult.normalizedNit) {
+            console.log(`[normalizarNits] SKIP - Backend validation failed: ${nitInput}`);
             continue;
           }
 
@@ -124,17 +131,20 @@ function AsignacionesTab() {
               (a) => a.nit === nitNormalizado && a.responsable_id === bulkResponsableId && a.activo
             );
             if (yaAsignado) {
+              console.log(`[normalizarNits] SKIP - Already assigned: ${nitNormalizado}`);
               continue;
             }
           }
 
+          console.log(`[normalizarNits] ACCEPTED: ${nitNormalizado}`);
           nitsNormalizados.push(nitNormalizado);
         } catch (error) {
-          console.error(`Error validando NIT ${nitInput}:`, error);
+          console.error(`[normalizarNits] Exception validating NIT ${nitInput}:`, error);
           continue;
         }
       }
 
+      console.log('[normalizarNits] Resultado final:', nitsNormalizados.length, 'NITs válidos');
       return nitsNormalizados;
     },
     [bulkResponsableId, asignaciones]
@@ -332,15 +342,24 @@ function AsignacionesTab() {
       let mensajeCompleto = '';
 
       if (response.creadas > 0) {
-        mensajeCompleto += `✓ Se asignaron ${response.creadas} NIT(s) exitosamente.\n\n`;
+        const nitsCreados = response.nits_creados && response.nits_creados.length > 0
+          ? response.nits_creados.join(', ')
+          : 'N/A';
+        mensajeCompleto += `[NEW] Se crearon ${response.creadas} NIT(s) nuevos:\n${nitsCreados}\n\n`;
       }
 
       if (response.reactivadas > 0) {
-        mensajeCompleto += `↻ Se reactivaron ${response.reactivadas} asignación(es) previamente eliminada(s).\n\n`;
+        const nitsReactivados = response.nits_reactivados && response.nits_reactivados.length > 0
+          ? response.nits_reactivados.join(', ')
+          : 'N/A';
+        mensajeCompleto += `[REACTIVATED] Se reactivaron ${response.reactivadas} asignación(es) previamente eliminada(s):\n${nitsReactivados}\n\n`;
       }
 
       if (response.omitidas > 0) {
-        mensajeCompleto += `⚠ ${response.omitidas} NIT(s) ya estaban asignados activos a este responsable y fueron omitidos.\n\n`;
+        const nitsOmitidosStr = response.nits_omitidos && response.nits_omitidos.length > 0
+          ? response.nits_omitidos.join(', ')
+          : 'N/A';
+        mensajeCompleto += `[SKIPPED] ${response.omitidas} NIT(s) ya estaban asignados activos a este responsable y fueron omitidos:\n${nitsOmitidosStr}\n\n`;
       }
 
       if (response.errores && response.errores.length > 0) {
