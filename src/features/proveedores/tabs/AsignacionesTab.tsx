@@ -552,7 +552,7 @@ function AsignacionesTab() {
               </TableCell>
               <TableCell>ID</TableCell>
               <TableCell>Responsable</TableCell>
-              <TableCell>Proveedor</TableCell>
+              <TableCell>Razón Social</TableCell>
               <TableCell>NIT</TableCell>
               <TableCell align="right">Acciones</TableCell>
             </TableRow>
