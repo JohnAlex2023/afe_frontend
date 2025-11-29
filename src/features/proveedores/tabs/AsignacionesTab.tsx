@@ -64,6 +64,7 @@ function AsignacionesTab() {
   const [openWarningDialog, setOpenWarningDialog] = useState(false); // Modal de advertencia
   const [warningMessage, setWarningMessage] = useState<string>(''); // Mensaje de advertencia
   const [duplicateNit, setDuplicateNit] = useState<string | null>(null); // NIT duplicado para mostrar
+  const [bulkResponseData, setBulkResponseData] = useState<any>(null); // Datos de respuesta bulk para mostrar en modal
   const [responsables, setResponsables] = useState<Responsable[]>([]);
   const [formData, setFormData] = useState<AsignacionFormData>({
     responsable_id: null,
@@ -170,6 +171,7 @@ function AsignacionesTab() {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setBulkResponseData(null);
   };
 
   const handleOpenBulkDialog = () => {
@@ -380,6 +382,8 @@ function AsignacionesTab() {
 
       // Si hay mensajes de advertencia o errores, mostrar modal
       if (response.omitidas > 0 || (response.errores && response.errores.length > 0) || response.reactivadas > 0) {
+        // Guardar datos de la respuesta para mostrar en modal
+        setBulkResponseData(response);
         setWarningMessage(mensajeCompleto.trim());
         setOpenWarningDialog(true);
       } else if (response.creadas > 0) {
@@ -990,57 +994,199 @@ function AsignacionesTab() {
           </IconButton>
         </Box>
 
-        <DialogContent sx={{ p: 4, backgroundColor: '#fafafa', textAlign: 'center' }}>
-          {/* NIT Duplicado - Mostrar de forma clara y profesional */}
-          {duplicateNit && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" sx={{ color: '#666', mb: 1 }}>
-                NIT ya registrado:
-              </Typography>
-              <Box
+        <DialogContent sx={{ p: 4, backgroundColor: '#fafafa', textAlign: 'left', maxHeight: '60vh', overflowY: 'auto' }}>
+          {/* Mostrar datos de respuesta bulk si existen */}
+          {bulkResponseData ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              {/* CREADOS */}
+              {bulkResponseData.creadas > 0 && bulkResponseData.nits_creados && (
+                <Box sx={{ p: 2.5, backgroundColor: '#e8f5e9', border: '2px solid #4caf50', borderRadius: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#2e7d32', mb: 1.5 }}>
+                    ✓ {bulkResponseData.creadas} NIT(s) CREADO(S):
+                  </Typography>
+                  <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                    gap: 1,
+                  }}>
+                    {bulkResponseData.nits_creados.map((nit: string, idx: number) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          backgroundColor: 'white',
+                          border: '1px solid #4caf50',
+                          borderRadius: 1,
+                          p: 1.2,
+                          textAlign: 'center',
+                          fontFamily: 'monospace',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: '#2e7d32',
+                        }}
+                      >
+                        {nit}
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* REACTIVADOS */}
+              {bulkResponseData.reactivadas > 0 && bulkResponseData.nits_reactivados && (
+                <Box sx={{ p: 2.5, backgroundColor: '#fff3e0', border: '2px solid #ff9800', borderRadius: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#e65100', mb: 1.5 }}>
+                    ↻ {bulkResponseData.reactivadas} NIT(s) REACTIVADO(S):
+                  </Typography>
+                  <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                    gap: 1,
+                  }}>
+                    {bulkResponseData.nits_reactivados.map((nit: string, idx: number) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          backgroundColor: 'white',
+                          border: '1px solid #ff9800',
+                          borderRadius: 1,
+                          p: 1.2,
+                          textAlign: 'center',
+                          fontFamily: 'monospace',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: '#e65100',
+                        }}
+                      >
+                        {nit}
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* OMITIDOS */}
+              {bulkResponseData.omitidas > 0 && bulkResponseData.nits_omitidos && (
+                <Box sx={{ p: 2.5, backgroundColor: '#f3e5f5', border: '2px solid #9c27b0', borderRadius: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#6a1b9a', mb: 1.5 }}>
+                    ⊘ {bulkResponseData.omitidas} NIT(s) OMITIDO(S) (ya asignados):
+                  </Typography>
+                  <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                    gap: 1,
+                  }}>
+                    {bulkResponseData.nits_omitidos.map((nit: string, idx: number) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          backgroundColor: 'white',
+                          border: '1px solid #9c27b0',
+                          borderRadius: 1,
+                          p: 1.2,
+                          textAlign: 'center',
+                          fontFamily: 'monospace',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                          color: '#6a1b9a',
+                        }}
+                      >
+                        {nit}
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* ERRORES */}
+              {bulkResponseData.errores && bulkResponseData.errores.length > 0 && (
+                <Box sx={{ p: 2.5, backgroundColor: '#ffebee', border: '2px solid #f44336', borderRadius: 2 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#c62828', mb: 1.5 }}>
+                    ✗ {bulkResponseData.errores.length} NIT(s) CON ERROR:
+                  </Typography>
+                  <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                    gap: 1,
+                  }}>
+                    {bulkResponseData.errores.map((err: any, idx: number) => (
+                      <Box
+                        key={idx}
+                        sx={{
+                          backgroundColor: 'white',
+                          border: '1px solid #f44336',
+                          borderRadius: 1,
+                          p: 1.2,
+                          textAlign: 'center',
+                          fontFamily: 'monospace',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          color: '#c62828',
+                        }}
+                      >
+                        {err.nit || err}
+                      </Box>
+                    ))}
+                  </Box>
+                  <Typography variant="caption" sx={{ color: '#c62828', mt: 1.5, display: 'block' }}>
+                    Verificar que estén registrados en nit_configuracion
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          ) : (
+            <>
+              {/* NIT Duplicado - Para errores de asignación simple */}
+              {duplicateNit && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" sx={{ color: '#666', mb: 1 }}>
+                    NIT ya registrado:
+                  </Typography>
+                  <Box
+                    sx={{
+                      backgroundColor: 'white',
+                      border: `2px solid ${zentriaColors.naranja.main}`,
+                      borderRadius: 2,
+                      p: 2.5,
+                      display: 'inline-block',
+                      minWidth: 200,
+                    }}
+                  >
+                    <Typography
+                      variant="h5"
+                      sx={{
+                        fontWeight: 700,
+                        color: zentriaColors.naranja.main,
+                        fontFamily: 'monospace',
+                        letterSpacing: 1,
+                      }}
+                    >
+                      {duplicateNit}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Mensaje descriptivo genérico */}
+              <Alert
+                severity="info"
                 sx={{
-                  backgroundColor: 'white',
-                  border: `2px solid ${zentriaColors.naranja.main}`,
+                  backgroundColor: `${zentriaColors.verde.light}15`,
+                  border: `1.5px solid ${zentriaColors.verde.light}`,
                   borderRadius: 2,
-                  p: 2.5,
-                  display: 'inline-block',
-                  minWidth: 200,
+                  textAlign: 'left',
+                  '& .MuiAlert-message': {
+                    color: '#222',
+                  },
                 }}
               >
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: 700,
-                    color: zentriaColors.naranja.main,
-                    fontFamily: 'monospace',
-                    letterSpacing: 1,
-                  }}
-                >
-                  {duplicateNit}
+                <Typography variant="body2" color="#222">
+                  {warningMessage.includes('NITs')
+                    ? 'Estos NITs ya están asignados a este responsable. Selecciona otros NITs para continuar.'
+                    : 'Este NIT ya está asignado a este responsable. Selecciona otro NIT para continuar.'}
                 </Typography>
-              </Box>
-            </Box>
+              </Alert>
+            </>
           )}
-
-          {/* Mensaje descriptivo */}
-          <Alert
-            severity="info"
-            sx={{
-              backgroundColor: `${zentriaColors.verde.light}15`,
-              border: `1.5px solid ${zentriaColors.verde.light}`,
-              borderRadius: 2,
-              textAlign: 'left',
-              '& .MuiAlert-message': {
-                color: '#222',
-              },
-            }}
-          >
-            <Typography variant="body2" color="#222">
-              {warningMessage.includes('NITs')
-                ? 'Estos NITs ya están asignados a este responsable. Selecciona otros NITs para continuar.'
-                : 'Este NIT ya está asignado a este responsable. Selecciona otro NIT para continuar.'}
-            </Typography>
-          </Alert>
         </DialogContent>
 
         {/* Footer de Acciones */}
@@ -1059,6 +1205,7 @@ function AsignacionesTab() {
               setOpenWarningDialog(false);
               setDuplicateNit(null);
               setWarningMessage('');
+              setBulkResponseData(null);
             }}
             variant="contained"
             size="large"
