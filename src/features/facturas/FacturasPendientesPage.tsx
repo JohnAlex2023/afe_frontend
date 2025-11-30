@@ -36,8 +36,7 @@ import {
   Close,
   Error as ErrorIcon,
 } from '@mui/icons-material';
-import { useAppDispatch } from '../../app/hooks';
-import { showNotification } from '../notifications/notificationSlice';
+import { useNotification } from '../../components/Notifications/NotificationProvider';
 import { zentriaColors } from '../../theme/colors';
 
 // Importar axios directamente si api no está disponible
@@ -82,7 +81,7 @@ interface StatsData {
 }
 
 function FacturasPendientesPage() {
-  const dispatch = useAppDispatch();
+  const { showNotification } = useNotification();
 
   // Estado de datos
   const [facturas, setFacturas] = useState<ContadorFactura[]>([]);
@@ -118,10 +117,7 @@ function FacturasPendientesPage() {
         err.response?.data?.detail ||
           'Error al cargar facturas pendientes de validación'
       );
-      dispatch(showNotification({
-        type: 'error',
-        message: 'Error al cargar facturas pendientes'
-      }));
+      showNotification('Error al cargar facturas pendientes', 'error');
     } finally {
       setLoading(false);
     }
@@ -137,10 +133,7 @@ function FacturasPendientesPage() {
         observaciones: validacionObs || undefined
       });
 
-      dispatch(showNotification({
-        type: 'success',
-        message: `Factura ${selectedFactura.numero_factura} validada exitosamente. Lista para Tesorería.`
-      }));
+      showNotification(`Factura ${selectedFactura.numero_factura} validada exitosamente. Lista para Tesorería.`, 'success');
 
       // Remover factura de la tabla
       setFacturas(facturas.filter(f => f.id !== selectedFactura.id));
@@ -159,10 +152,7 @@ function FacturasPendientesPage() {
       setValidacionObs('');
     } catch (err: any) {
       console.error('Error validando factura:', err);
-      dispatch(showNotification({
-        type: 'error',
-        message: err.response?.data?.detail || 'Error al validar factura'
-      }));
+      showNotification(err.response?.data?.detail || 'Error al validar factura', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -171,10 +161,7 @@ function FacturasPendientesPage() {
   // Devolver factura (aprobada → devuelta_contabilidad)
   const handleDevolverFactura = async () => {
     if (!selectedFactura || !devolucionObs.trim()) {
-      dispatch(showNotification({
-        type: 'warning',
-        message: 'Debe especificar observaciones para devolver la factura'
-      }));
+      showNotification('Debe especificar observaciones para devolver la factura', 'warning');
       return;
     }
 
@@ -185,10 +172,7 @@ function FacturasPendientesPage() {
         notificar_responsable: notificarResponsable
       });
 
-      dispatch(showNotification({
-        type: 'success',
-        message: `Factura ${selectedFactura.numero_factura} devuelta. Responsable ha sido notificado.`
-      }));
+      showNotification(`Factura ${selectedFactura.numero_factura} devuelta. Responsable ha sido notificado.`, 'success');
 
       // Remover factura de la tabla
       setFacturas(facturas.filter(f => f.id !== selectedFactura.id));
@@ -207,10 +191,7 @@ function FacturasPendientesPage() {
       setNotificarResponsable(true);
     } catch (err: any) {
       console.error('Error devolviendo factura:', err);
-      dispatch(showNotification({
-        type: 'error',
-        message: err.response?.data?.detail || 'Error al devolver factura'
-      }));
+      showNotification(err.response?.data?.detail || 'Error al devolver factura', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -238,14 +219,8 @@ function FacturasPendientesPage() {
     });
   };
 
-  const handleVerDetalles = async (facturaId: number) => {
-    try {
-      await facturasService.openPdfInNewTab(facturaId, false);
-    } catch (error) {
-      console.error('Error abriendo detalles de factura:', error);
-      setError('Error al abrir los detalles de la factura. Por favor intente nuevamente.');
-    }
-  };
+  // Esta función ya no es necesaria - usamos el modal de detalles en su lugar
+  // Mantiene compatibilidad si se necesita en el futuro
 
   // Chip para tipo de aprobación
   const getTipoAprobacionChip = (tipo?: string) => {
