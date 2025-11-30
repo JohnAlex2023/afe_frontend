@@ -38,9 +38,7 @@ import {
 } from '@mui/icons-material';
 import { useNotification } from '../../components/Notifications/NotificationProvider';
 import { zentriaColors } from '../../theme/colors';
-
-// Importar axios directamente si api no está disponible
-import axios from 'axios';
+import apiClient from '../../services/api';
 
 /**
  * Página PROFESIONAL para Contador: Validación de Facturas
@@ -106,7 +104,7 @@ function FacturasPendientesPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('/api/v1/accounting/facturas/por-revisar', {
+      const response = await apiClient.get('/accounting/facturas/por-revisar', {
         params: { pagina: 1, limit: 100, solo_pendientes: true }
       });
 
@@ -139,7 +137,7 @@ function FacturasPendientesPage() {
 
     setActionLoading(true);
     try {
-      await axios.post(`/api/v1/accounting/facturas/${selectedFactura.id}/validar`, {
+      await apiClient.post(`/accounting/facturas/${selectedFactura.id}/validar`, {
         observaciones: validacionObs || undefined
       });
 
@@ -177,7 +175,7 @@ function FacturasPendientesPage() {
 
     setActionLoading(true);
     try {
-      await axios.post(`/api/v1/accounting/facturas/${selectedFactura.id}/devolver`, {
+      await apiClient.post(`/accounting/facturas/${selectedFactura.id}/devolver`, {
         observaciones: devolucionObs,
         notificar_responsable: notificarResponsable
       });
