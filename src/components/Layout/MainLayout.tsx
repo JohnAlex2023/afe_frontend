@@ -42,6 +42,10 @@ const baseMenuItems = [
   { text: 'Por Revisar', icon: <DescriptionIcon />, path: '/facturas', roles: ['admin', 'responsable', 'viewer'] },
 ];
 
+// Menú especial para Contador
+const contadorMenuItems = [
+  { text: 'Validar Facturas', icon: <AssessmentIcon />, path: '/contabilidad/pendientes', roles: ['contador'] },
+];
 
 // Menús adicionales para administradores
 const adminMenuItems = [
@@ -82,6 +86,10 @@ function MainLayout() {
 
   // Filtrar menús según el rol del usuario
   let allMenuItems = [...baseMenuItems];
+
+  if (user?.rol === 'contador') {
+    allMenuItems = [...allMenuItems, ...contadorMenuItems];
+  }
 
   if (user?.rol === 'admin' || user?.rol === 'viewer') {
     allMenuItems = [...allMenuItems, ...adminMenuItems];
