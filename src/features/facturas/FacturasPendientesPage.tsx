@@ -16,49 +16,203 @@ import {
   Button,
   Stack,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControlLabel,
+  Checkbox,
+  Grid,
+  Card,
 } from '@mui/material';
 import {
   Refresh,
   PictureAsPdf,
   CheckCircle,
   Assessment,
-  AddCircle,
+  VerifiedUser,
+  ReplyAll,
+  Close,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
-import { ModalRegistroPago } from '../dashboard/components/ModalRegistroPago';
-import { facturasService, type FacturaPendiente } from './services/facturas.service';
+import { useAppDispatch } from '../../app/hooks';
+import { showNotification } from '../notifications/notificationSlice';
 import { zentriaColors } from '../../theme/colors';
 
+// Importar axios directamente si api no está disponible
+import axios from 'axios';
+
 /**
- * Página exclusiva para contadores: lista de facturas aprobadas pendientes de procesar
+ * Página PROFESIONAL para Contador: Validación de Facturas
  *
- * Esta página muestra todas las facturas que fueron aprobadas (manual o automáticamente)
- * y están listas para que contabilidad las procese.
+ * RESPONSABILIDAD ÚNICA: Validar facturas aprobadas para Tesorería
+ * - Ver facturas en estado: aprobada / aprobada_auto
+ * - Validar factura → estado: validada_contabilidad (OK para Tesorería)
+ * - Devolver factura → estado: devuelta_contabilidad (requiere corrección)
  *
- * NUEVO 2025-11-18
+ * NO TOCA: Pagos, Tesorería, Contabilización
+ *
+ * REFACTORIZADO: 2025-11-29 (Eliminado módulo de pagos completamente)
  */
+interface ContadorFactura {
+  id: number;
+  numero_factura: string;
+  estado: string;
+  proveedor: {
+    nit: string;
+    razon_social: string;
+  };
+  subtotal: number;
+  iva: number;
+  total_a_pagar: number;
+  aprobado_por_workflow?: string;
+  tipo_aprobacion_workflow?: string;
+  fecha_aprobacion_workflow?: string;
+  usuario?: {
+    nombre: string;
+    email: string;
+  };
+}
+
+interface StatsData {
+  total_pendiente: number;
+  monto_pendiente: number;
+  validadas_hoy: number;
+}
+
 function FacturasPendientesPage() {
-  const [facturas, setFacturas] = useState<FacturaPendiente[]>([]);
+  const dispatch = useAppDispatch();
+
+  // Estado de datos
+  const [facturas, setFacturas] = useState<ContadorFactura[]>([]);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para modal de pago
-  const [registroModalOpen, setRegistroModalOpen] = useState(false);
-  const [selectedFactura, setSelectedFactura] = useState<FacturaPendiente | null>(null);
+  // Estados para modales
+  const [validacionModalOpen, setValidacionModalOpen] = useState(false);
+  const [devolucionModalOpen, setDevolucionModalOpen] = useState(false);
+  const [detallesModalOpen, setDetallesModalOpen] = useState(false);
+  const [selectedFactura, setSelectedFactura] = useState<ContadorFactura | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
+  // Estados para formularios
+  const [validacionObs, setValidacionObs] = useState('');
+  const [devolucionObs, setDevolucionObs] = useState('');
+  const [notificarResponsable, setNotificarResponsable] = useState(true);
+
+  // Cargar facturas aprobadas pendientes de validación
   const loadFacturas = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await facturasService.getFacturasPendientes();
-      setFacturas(response.facturas);
+      const response = await axios.get('/api/v1/accounting/facturas/por-revisar', {
+        params: { pagina: 1, limit: 100, solo_pendientes: true }
+      });
+      setFacturas(response.data.facturas);
+      setStats(response.data.estadisticas);
     } catch (err: any) {
-      console.error('Error cargando facturas pendientes:', err);
+      console.error('Error cargando facturas:', err);
       setError(
         err.response?.data?.detail ||
-          'Error al cargar las facturas pendientes. Por favor intente nuevamente.'
+          'Error al cargar facturas pendientes de validación'
       );
+      dispatch(showNotification({
+        type: 'error',
+        message: 'Error al cargar facturas pendientes'
+      }));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Validar factura (aprobada → validada_contabilidad)
+  const handleValidarFactura = async () => {
+    if (!selectedFactura) return;
+
+    setActionLoading(true);
+    try {
+      await axios.post(`/api/v1/accounting/facturas/${selectedFactura.id}/validar`, {
+        observaciones: validacionObs || undefined
+      });
+
+      dispatch(showNotification({
+        type: 'success',
+        message: `Factura ${selectedFactura.numero_factura} validada exitosamente. Lista para Tesorería.`
+      }));
+
+      // Remover factura de la tabla
+      setFacturas(facturas.filter(f => f.id !== selectedFactura.id));
+      // Actualizar estadísticas
+      if (stats) {
+        setStats({
+          ...stats,
+          total_pendiente: stats.total_pendiente - 1,
+          validadas_hoy: stats.validadas_hoy + 1
+        });
+      }
+
+      // Cerrar modal
+      setValidacionModalOpen(false);
+      setSelectedFactura(null);
+      setValidacionObs('');
+    } catch (err: any) {
+      console.error('Error validando factura:', err);
+      dispatch(showNotification({
+        type: 'error',
+        message: err.response?.data?.detail || 'Error al validar factura'
+      }));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Devolver factura (aprobada → devuelta_contabilidad)
+  const handleDevolverFactura = async () => {
+    if (!selectedFactura || !devolucionObs.trim()) {
+      dispatch(showNotification({
+        type: 'warning',
+        message: 'Debe especificar observaciones para devolver la factura'
+      }));
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      await axios.post(`/api/v1/accounting/facturas/${selectedFactura.id}/devolver`, {
+        observaciones: devolucionObs,
+        notificar_responsable: notificarResponsable
+      });
+
+      dispatch(showNotification({
+        type: 'success',
+        message: `Factura ${selectedFactura.numero_factura} devuelta. Responsable ha sido notificado.`
+      }));
+
+      // Remover factura de la tabla
+      setFacturas(facturas.filter(f => f.id !== selectedFactura.id));
+      // Actualizar estadísticas
+      if (stats) {
+        setStats({
+          ...stats,
+          total_pendiente: stats.total_pendiente - 1
+        });
+      }
+
+      // Cerrar modal
+      setDevolucionModalOpen(false);
+      setSelectedFactura(null);
+      setDevolucionObs('');
+      setNotificarResponsable(true);
+    } catch (err: any) {
+      console.error('Error devolviendo factura:', err);
+      dispatch(showNotification({
+        type: 'error',
+        message: err.response?.data?.detail || 'Error al devolver factura'
+      }));
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -93,59 +247,58 @@ function FacturasPendientesPage() {
     }
   };
 
-  const getEstadoChip = (estado: string) => {
-    if (estado === 'pagada') {
+  // Chip para tipo de aprobación
+  const getTipoAprobacionChip = (tipo?: string) => {
+    if (tipo === 'automatica') {
       return (
         <Chip
-          label="✓ Pagada"
-          color="success"
+          label="Automática"
           size="small"
-          icon={<CheckCircle />}
-          sx={{ fontWeight: 600, backgroundColor: '#2e7d32', color: 'white' }}
-        />
-      );
-    }
-    if (estado === 'aprobada_auto') {
-      return (
-        <Chip
-          label="Aprobada Automática"
-          color="success"
-          size="small"
-          icon={<CheckCircle />}
-          sx={{ fontWeight: 600 }}
+          sx={{
+            backgroundColor: zentriaColors.verde.light,
+            color: zentriaColors.verde.dark,
+            fontWeight: 600
+          }}
         />
       );
     }
     return (
       <Chip
-        label="Aprobada Manual"
-        color="info"
+        label="Manual"
         size="small"
-        icon={<CheckCircle />}
-        sx={{ fontWeight: 600 }}
+        sx={{
+          backgroundColor: zentriaColors.naranja.light,
+          color: zentriaColors.naranja.dark,
+          fontWeight: 600
+        }}
       />
     );
   };
 
-  const handleOpenRegistroModal = (factura: FacturaPendiente) => {
+  // Abrir modal de validación
+  const handleAbrirValidacion = (factura: ContadorFactura) => {
     setSelectedFactura(factura);
-    setRegistroModalOpen(true);
+    setValidacionObs('');
+    setValidacionModalOpen(true);
   };
 
-  const handleCloseRegistroModal = () => {
-    setRegistroModalOpen(false);
-    setSelectedFactura(null);
+  // Abrir modal de devolución
+  const handleAbrirDevolucion = (factura: ContadorFactura) => {
+    setSelectedFactura(factura);
+    setDevolucionObs('');
+    setNotificarResponsable(true);
+    setDevolucionModalOpen(true);
   };
 
-  const handlePagoSuccess = async () => {
-    handleCloseRegistroModal();
-    // Refrescar la lista de facturas después del pago exitoso
-    await loadFacturas();
+  // Abrir modal de detalles
+  const handleAbrirDetalles = (factura: ContadorFactura) => {
+    setSelectedFactura(factura);
+    setDetallesModalOpen(true);
   };
 
   return (
     <Box>
-      {/* Header */}
+      {/* HEADER PROFESIONAL */}
       <Box
         sx={{
           background: `linear-gradient(135deg, ${zentriaColors.violeta.main} 0%, ${zentriaColors.violeta.dark} 100%)`,
@@ -156,25 +309,61 @@ function FacturasPendientesPage() {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={2} mb={1}>
-          <Assessment sx={{ fontSize: 40 }} />
-          <Box>
+        <Stack direction="row" alignItems="center" spacing={2} mb={2}>
+          <VerifiedUser sx={{ fontSize: 40 }} />
+          <Box flex={1}>
             <Typography variant="h4" fontWeight={700}>
-              Facturas Pendientes
+              Validación de Facturas
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              Facturas aprobadas listas para procesar por contabilidad
+              Revisa y valida facturas aprobadas. Solo facturas validadas llegan a Tesorería.
             </Typography>
           </Box>
         </Stack>
       </Box>
 
-      {/* Toolbar */}
+      {/* ESTADÍSTICAS */}
+      {stats && (
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 2, textAlign: 'center', boxShadow: 1 }}>
+              <Typography variant="h6" fontWeight={700} color="primary">
+                {stats.total_pendiente}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Pendientes de Validar
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 2, textAlign: 'center', boxShadow: 1 }}>
+              <Typography variant="h6" fontWeight={700} color="success.main">
+                {formatCurrency(stats.monto_pendiente)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Monto Total
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ p: 2, textAlign: 'center', boxShadow: 1 }}>
+              <Typography variant="h6" fontWeight={700} color="success.main">
+                {stats.validadas_hoy}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Validadas Hoy
+              </Typography>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* TOOLBAR */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h6" fontWeight={600}>
           {facturas.length === 0
             ? 'No hay facturas pendientes'
-            : `${facturas.length} factura${facturas.length !== 1 ? 's' : ''} pendiente${facturas.length !== 1 ? 's' : ''}`}
+            : `${facturas.length} factura${facturas.length !== 1 ? 's' : ''} por validar`}
         </Typography>
         <Button
           variant="outlined"
@@ -186,7 +375,7 @@ function FacturasPendientesPage() {
         </Button>
       </Box>
 
-      {/* Content */}
+      {/* CONTENIDO PRINCIPAL */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
@@ -206,10 +395,10 @@ function FacturasPendientesPage() {
         >
           <CheckCircle sx={{ fontSize: 80, color: zentriaColors.verde.main, mb: 2 }} />
           <Typography variant="h6" fontWeight={600} gutterBottom>
-            ¡Todo al día!
+            ¡Todo validado!
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            No hay facturas aprobadas pendientes de procesar en este momento
+            No hay facturas pendientes de validación en este momento
           </Typography>
         </Paper>
       ) : (
@@ -217,18 +406,16 @@ function FacturasPendientesPage() {
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
-                <TableCell sx={{ fontWeight: 700 }}>Número</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Factura</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Proveedor</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>NIT</TableCell>
                 <TableCell sx={{ fontWeight: 700 }} align="right">
                   Monto
                 </TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Fecha Emisión</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Aprobada por</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Tipo</TableCell>
                 <TableCell sx={{ fontWeight: 700 }} align="center">
-                  Pago
-                </TableCell>
-                <TableCell sx={{ fontWeight: 700 }} align="center">
-                  Factura
+                  Acciones
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -240,50 +427,66 @@ function FacturasPendientesPage() {
                   sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                 >
                   <TableCell>
-                    <Typography variant="body2" fontWeight={600}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      sx={{ cursor: 'pointer', color: zentriaColors.violeta.main }}
+                      onClick={() => handleAbrirDetalles(factura)}
+                    >
                       {factura.numero_factura}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {factura.proveedor || 'Sin proveedor'}
+                      {factura.proveedor?.razon_social || 'Sin proveedor'}
                     </Typography>
                   </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">{factura.proveedor?.nit || '-'}</Typography>
+                  </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" fontWeight={600} color="primary">
-                      {formatCurrency(factura.monto)}
+                    <Typography variant="body2" fontWeight={600}>
+                      {formatCurrency(factura.total_a_pagar)}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {formatDate(factura.fecha_emision)}
+                      {factura.aprobado_por_workflow || 'Sistema'}
                     </Typography>
                   </TableCell>
-                  <TableCell>{getEstadoChip(factura.estado)}</TableCell>
+                  <TableCell>
+                    {getTipoAprobacionChip(factura.tipo_aprobacion_workflow)}
+                  </TableCell>
                   <TableCell align="center">
-                    <Tooltip title={factura.estado === 'pagada' ? 'Factura ya pagada' : 'Registrar pago'}>
-                      <span>
+                    <Stack direction="row" spacing={1} justifyContent="center">
+                      <Tooltip title="Validar factura">
                         <IconButton
                           size="small"
                           color="success"
-                          onClick={() => handleOpenRegistroModal(factura)}
-                          disabled={factura.estado === 'pagada'}
+                          onClick={() => handleAbrirValidacion(factura)}
                         >
-                          <AddCircle />
+                          <VerifiedUser />
                         </IconButton>
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Tooltip title="Ver detalles de la factura">
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleVerDetalles(factura.id)}
-                      >
-                        <PictureAsPdf />
-                      </IconButton>
-                    </Tooltip>
+                      </Tooltip>
+                      <Tooltip title="Devolver factura">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleAbrirDevolucion(factura)}
+                        >
+                          <ReplyAll />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Ver detalles">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleAbrirDetalles(factura)}
+                        >
+                          <Assessment />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}
@@ -292,19 +495,205 @@ function FacturasPendientesPage() {
         </TableContainer>
       )}
 
-      {/* Modal de Registro de Pago */}
-      {selectedFactura && (
-        <ModalRegistroPago
-          isOpen={registroModalOpen}
-          onClose={handleCloseRegistroModal}
-          facturaId={selectedFactura.id}
-          facturaNumero={selectedFactura.numero_factura}
-          totalFactura={selectedFactura.monto}
-          totalPagado={selectedFactura.total_pagado.toString()}
-          pendientePagar={selectedFactura.pendiente_pagar.toString()}
-          onPagoSuccess={handlePagoSuccess}
-        />
-      )}
+      {/* MODAL: VALIDACIÓN */}
+      <Dialog open={validacionModalOpen} onClose={() => setValidacionModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <VerifiedUser color="success" />
+            Validar Factura
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedFactura && (
+            <Box sx={{ pt: 2 }}>
+              <Box sx={{ mb: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="body2" fontWeight={600}>
+                  {selectedFactura.numero_factura}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedFactura.proveedor?.razon_social}
+                </Typography>
+                <Typography variant="body2" fontWeight={600} color="primary" sx={{ mt: 1 }}>
+                  {formatCurrency(selectedFactura.total_a_pagar)}
+                </Typography>
+              </Box>
+
+              <TextField
+                label="Observaciones (opcional)"
+                multiline
+                rows={4}
+                value={validacionObs}
+                onChange={(e) => setValidacionObs(e.target.value)}
+                fullWidth
+                placeholder="Ej: Verificada contra registros contables..."
+                variant="outlined"
+              />
+
+              <Alert severity="info" sx={{ mt: 3 }}>
+                La factura pasará a estado <strong>validada_contabilidad</strong> y estará lista para Tesorería.
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidacionModalOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={handleValidarFactura}
+            variant="contained"
+            color="success"
+            disabled={actionLoading}
+          >
+            {actionLoading ? 'Validando...' : 'Validar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* MODAL: DEVOLUCIÓN */}
+      <Dialog open={devolucionModalOpen} onClose={() => setDevolucionModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ReplyAll color="error" />
+            Devolver Factura
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {selectedFactura && (
+            <Box sx={{ pt: 2 }}>
+              <Box sx={{ mb: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Typography variant="body2" fontWeight={600}>
+                  {selectedFactura.numero_factura}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedFactura.proveedor?.razon_social}
+                </Typography>
+                <Typography variant="body2" fontWeight={600} color="primary" sx={{ mt: 1 }}>
+                  {formatCurrency(selectedFactura.total_a_pagar)}
+                </Typography>
+              </Box>
+
+              <TextField
+                label="Observaciones (requerido)"
+                multiline
+                rows={4}
+                value={devolucionObs}
+                onChange={(e) => setDevolucionObs(e.target.value)}
+                fullWidth
+                placeholder="Ej: Falta especificar centro de costos..."
+                variant="outlined"
+                error={devolucionObs.length > 0 && devolucionObs.length < 10}
+                helperText={devolucionObs.length > 0 && devolucionObs.length < 10 ? 'Mínimo 10 caracteres' : ''}
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={notificarResponsable}
+                    onChange={(e) => setNotificarResponsable(e.target.checked)}
+                  />
+                }
+                label="Notificar al Responsable que aprobó"
+                sx={{ mt: 2 }}
+              />
+
+              <Alert severity="warning" sx={{ mt: 3 }}>
+                La factura volverá a estado <strong>en_revision</strong> para que el Responsable la corrija.
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDevolucionModalOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={handleDevolverFactura}
+            variant="contained"
+            color="error"
+            disabled={actionLoading || !devolucionObs.trim() || devolucionObs.length < 10}
+          >
+            {actionLoading ? 'Devolviendo...' : 'Devolver'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* MODAL: DETALLES */}
+      <Dialog open={detallesModalOpen} onClose={() => setDetallesModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Detalles de Factura
+          <IconButton onClick={() => setDetallesModalOpen(false)} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {selectedFactura && (
+            <Box sx={{ pt: 2 }}>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                Información General
+              </Typography>
+              <Box sx={{ mb: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Factura:</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {selectedFactura.numero_factura}
+                  </Typography>
+                </Box>
+                <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Proveedor:</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {selectedFactura.proveedor?.razon_social}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">NIT:</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {selectedFactura.proveedor?.nit}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                Montos
+              </Typography>
+              <Box sx={{ mb: 3, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Subtotal:</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {formatCurrency(selectedFactura.subtotal)}
+                  </Typography>
+                </Box>
+                <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">IVA:</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {formatCurrency(selectedFactura.iva)}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, borderTop: '1px solid #ddd' }}>
+                  <Typography variant="body2" fontWeight={600}>
+                    TOTAL:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} color="primary">
+                    {formatCurrency(selectedFactura.total_a_pagar)}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+                Aprobación
+              </Typography>
+              <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Aprobada por:</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {selectedFactura.aprobado_por_workflow || 'Sistema'}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2">Tipo:</Typography>
+                  {getTipoAprobacionChip(selectedFactura.tipo_aprobacion_workflow)}
+                </Box>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
