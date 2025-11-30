@@ -109,15 +109,25 @@ function FacturasPendientesPage() {
       const response = await axios.get('/api/v1/accounting/facturas/por-revisar', {
         params: { pagina: 1, limit: 100, solo_pendientes: true }
       });
-      setFacturas(response.data.facturas);
-      setStats(response.data.estadisticas);
+
+      // Validar que la respuesta tenga la estructura esperada
+      if (response.data && response.data.facturas && Array.isArray(response.data.facturas)) {
+        setFacturas(response.data.facturas);
+        setStats(response.data.estadisticas || { total_pendiente: 0, monto_pendiente: 0, validadas_hoy: 0 });
+      } else {
+        console.error('Respuesta inesperada del servidor:', response.data);
+        setError('Formato de respuesta inválido del servidor');
+        setFacturas([]);
+      }
     } catch (err: any) {
       console.error('Error cargando facturas:', err);
-      setError(
-        err.response?.data?.detail ||
-          'Error al cargar facturas pendientes de validación'
-      );
-      showNotification('Error al cargar facturas pendientes', 'error');
+      const errorMessage = err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.message ||
+        'Error al cargar facturas pendientes de validación';
+      setError(errorMessage);
+      setFacturas([]);
+      showNotification(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
