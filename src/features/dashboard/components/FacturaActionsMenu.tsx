@@ -17,6 +17,7 @@ interface FacturaActionsMenuProps {
   onApprove: (factura: Factura) => void;
   onReject: (factura: Factura) => void;
   onDelete: (factura: Factura) => void;
+  isHistorico?: boolean;
 }
 
 export const FacturaActionsMenu: React.FC<FacturaActionsMenuProps> = ({
@@ -27,18 +28,19 @@ export const FacturaActionsMenu: React.FC<FacturaActionsMenuProps> = ({
   onApprove,
   onReject,
   onDelete,
+  isHistorico = false,
 }) => {
   const handleAction = (action: () => void) => {
     action();
     onClose();
   };
 
-  const canApprove = hasPermission(userRole, 'canApprove');
-  const canReject = hasPermission(userRole, 'canReject');
-  const canDelete = hasPermission(userRole, 'canDelete');
+  const canApprove = hasPermission(userRole, 'canApprove') && !isHistorico;
+  const canReject = hasPermission(userRole, 'canReject') && !isHistorico;
+  const canDelete = hasPermission(userRole, 'canDelete') && !isHistorico;
 
-  // Si no tiene ningún permiso, no mostrar el menú
-  if (!canApprove && !canReject && !canDelete) {
+  // Si no tiene ningún permiso o es histórico, no mostrar el menú
+  if ((!canApprove && !canReject && !canDelete) || isHistorico) {
     return null;
   }
 

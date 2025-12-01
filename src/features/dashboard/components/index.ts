@@ -9,3 +9,4 @@ export * from './FacturasTable';
 export * from './FacturaFormModal';
 export * from './FacturaActionsMenu';
 export * from './ChartsSection';
+export * from './AlertaMes';

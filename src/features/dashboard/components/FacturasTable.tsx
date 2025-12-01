@@ -34,6 +34,7 @@ interface FacturasTableProps {
   onOpenDialog: (mode: DialogMode, factura: Factura) => void;
   onMenuClick: (event: React.MouseEvent<HTMLElement>, factura: Factura) => void;
   isAdmin?: boolean;
+  isHistorico?: boolean;
 }
 
 export const FacturasTable: React.FC<FacturasTableProps> = ({
@@ -45,6 +46,7 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
   onOpenDialog,
   onMenuClick,
   isAdmin = false,
+  isHistorico = false,
 }) => {
   const paginatedFacturas = facturas.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const totalColumns = 9; // Fixed column count
@@ -231,7 +233,7 @@ export const FacturasTable: React.FC<FacturasTableProps> = ({
                       </IconButton>
                     </Tooltip>
 
-                    {isAdmin && (
+                    {isAdmin && !isHistorico && (
                       <>
                         <Tooltip title={`Editar factura ${factura.numero_factura}`} {...tooltipProps}>
                           <IconButton

@@ -3,9 +3,20 @@
  * Refactored to use modular components, custom hooks, and services
  */
 
-import { useState } from 'react';
-import { Box, Typography, Button, CircularProgress, Alert, Chip } from '@mui/material';
-import { Refresh, Add } from '@mui/icons-material';
+import { useState, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
+  Alert,
+  Chip,
+  Select,
+  MenuItem,
+  FormControl,
+  Stack,
+} from '@mui/material';
+import { Refresh, Add, ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { useAppSelector } from '../../app/hooks';
 import { zentriaColors } from '../../theme/colors';
 import apiClient from '../../services/api';
@@ -18,6 +29,7 @@ import {
   FacturaFormModal,
   FacturaActionsMenu,
   ChartsSection,
+  AlertaMes,
 } from './components';
 import { useDashboardData, useFacturaDialog } from './hooks';
 import { facturasService } from './services/facturas.service';
@@ -32,6 +44,17 @@ import { ConfirmDeleteDialog } from '../../components/Dialogs/ConfirmDeleteDialo
 
 function DashboardPage() {
   const user = useAppSelector((state) => state.auth.user);
+
+  // Período state - Selector de mes/año
+  const hoy = new Date();
+  const mesActual = hoy.getMonth() + 1;
+  const anioActual = hoy.getFullYear();
+
+  const [mesSeleccionado, setMesSeleccionado] = useState<number>(mesActual);
+  const [anioSeleccionado, setAnioSeleccionado] = useState<number>(anioActual);
+
+  // Detectar si estamos viendo un período histórico (mes pasado)
+  const isHistorico = mesSeleccionado !== mesActual || anioSeleccionado !== anioActual;
 
   // Filter and pagination state
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,6 +94,8 @@ function DashboardPage() {
     userRole: user?.rol,
     filterEstado,
     vistaFacturas,
+    mesSeleccionado,
+    anioSeleccionado,
   });
 
   const {
@@ -91,6 +116,15 @@ function DashboardPage() {
       factura?.nit_emisor?.includes(searchTerm)
   );
 
+  // Constantes de meses
+  const MESES = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  const nombreMesActual = MESES[mesActual - 1];
+  const nombreMesSeleccionado = MESES[mesSeleccionado - 1];
+
   // Handlers
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -99,6 +133,33 @@ function DashboardPage() {
 
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setRowsPerPage(newRowsPerPage);
+    setPage(0);
+  };
+
+  // Handlers para selector de período
+  const handleMesAnterior = () => {
+    if (mesSeleccionado === 1) {
+      setMesSeleccionado(12);
+      setAnioSeleccionado(anioSeleccionado - 1);
+    } else {
+      setMesSeleccionado(mesSeleccionado - 1);
+    }
+    setPage(0);
+  };
+
+  const handleMesSiguiente = () => {
+    if (mesSeleccionado === 12) {
+      setMesSeleccionado(1);
+      setAnioSeleccionado(anioSeleccionado + 1);
+    } else {
+      setMesSeleccionado(mesSeleccionado + 1);
+    }
+    setPage(0);
+  };
+
+  const handleVolverAlMesActual = () => {
+    setMesSeleccionado(mesActual);
+    setAnioSeleccionado(anioActual);
     setPage(0);
   };
 
@@ -265,6 +326,11 @@ function DashboardPage() {
 
   return (
     <Box>
+      {/* Campana de alerta de fin de mes - Siempre visible en la parte superior */}
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+        <AlertaMes />
+      </Box>
+
       {/* Header - Responsive: Vertical on mobile, Horizontal on desktop */}
       <Box
         display="flex"
@@ -324,6 +390,80 @@ function DashboardPage() {
           >
             {loading ? 'Actualizando...' : 'Actualizar'}
           </Button>
+
+          {/* Selector de Período Premium */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            alignItems="center"
+            sx={{
+              p: { xs: 1.5, sm: 1 },
+              backgroundColor: 'rgba(128, 0, 106, 0.04)',
+              borderRadius: '8px',
+              border: `1px solid rgba(128, 0, 106, 0.1)`,
+              minWidth: { xs: '100%', sm: 'auto' },
+            }}
+          >
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<ChevronLeft />}
+              onClick={handleMesAnterior}
+              sx={{
+                color: zentriaColors.violeta.main,
+                fontWeight: 600,
+                '&:hover': { bgcolor: zentriaColors.violeta.main + '10' },
+              }}
+            >
+              Ant.
+            </Button>
+
+            <Chip
+              label={`${nombreMesSeleccionado} ${anioSeleccionado}`}
+              sx={{
+                background: `linear-gradient(135deg, ${zentriaColors.violeta.main}, ${zentriaColors.naranja.main})`,
+                color: 'white',
+                fontWeight: 700,
+                height: 32,
+                minWidth: 160,
+              }}
+            />
+
+            <Button
+              size="small"
+              variant="text"
+              endIcon={<ChevronRight />}
+              onClick={handleMesSiguiente}
+              sx={{
+                color: zentriaColors.violeta.main,
+                fontWeight: 600,
+                '&:hover': { bgcolor: zentriaColors.violeta.main + '10' },
+              }}
+            >
+              Sig.
+            </Button>
+
+            {isHistorico && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleVolverAlMesActual}
+                sx={{
+                  borderColor: zentriaColors.naranja.main,
+                  color: zentriaColors.naranja.main,
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  '&:hover': {
+                    borderColor: zentriaColors.naranja.main,
+                    bgcolor: zentriaColors.naranja.main + '10',
+                  },
+                }}
+              >
+                Hoy
+              </Button>
+            )}
+          </Stack>
           {user?.rol === 'admin' && (
             <Button
               variant="contained"
@@ -402,6 +542,7 @@ function DashboardPage() {
         onOpenDialog={openDialogWith}
         onMenuClick={handleMenuClick}
         isAdmin={user?.rol === 'admin' || user?.rol === 'responsable'}
+        isHistorico={isHistorico}
       />
 
       {/* Actions Menu */}
@@ -413,6 +554,7 @@ function DashboardPage() {
         onApprove={handleApprove}
         onReject={handleReject}
         onDelete={handleDelete}
+        isHistorico={isHistorico}
       />
 
       {/* Professional Modals */}
@@ -468,6 +610,7 @@ function DashboardPage() {
         onConfirm={handleConfirmDelete}
         loading={deleteLoading}
       />
+
     </Box>
   );
 }

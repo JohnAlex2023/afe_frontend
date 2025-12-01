@@ -1,17 +1,21 @@
 /**
  * Custom hook for managing dashboard data
  * Handles fetching, filtering, and calculating statistics for facturas
+ * Implements automatic cleanup by loading from appropriate endpoints based on selected period
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Factura, DashboardStats, EstadoFactura, VistaFacturas } from '../types';
 import { facturasService } from '../services/facturas.service';
 import { isEstadoAprobado, isEstadoRechazado } from '../utils';
+import apiClient from '../../../services/api';
 
 interface UseDashboardDataParams {
   userRole?: string;
   filterEstado: EstadoFactura | 'todos';
   vistaFacturas: VistaFacturas;
+  mesSeleccionado?: number;
+  anioSeleccionado?: number;
 }
 
 interface UseDashboardDataReturn {
@@ -29,6 +33,8 @@ export const useDashboardData = ({
   userRole,
   filterEstado,
   vistaFacturas,
+  mesSeleccionado,
+  anioSeleccionado,
 }: UseDashboardDataParams): UseDashboardDataReturn => {
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -70,44 +76,72 @@ export const useDashboardData = ({
     setError('');
 
     try {
-      if (userRole === 'admin') {
-        // Admin can see both "todas" and "asignadas"
-        const [todasResponse, asignadasResponse] = await Promise.all([
-          facturasService.fetchFacturas({ page: 1, per_page: 2000 }),
-          facturasService.fetchFacturas({ solo_asignadas: true, page: 1, per_page: 2000 }),
-        ]);
+      // Determine if viewing historical data or current month
+      const hoy = new Date();
+      const mesActual = hoy.getMonth() + 1;
+      const anioActual = hoy.getFullYear();
 
-        const todasFacturasData = todasResponse.data || [];
-        const asignadasData = asignadasResponse.data || [];
+      const isHistorico =
+        (mesSeleccionado !== mesActual || anioSeleccionado !== anioActual) &&
+        (mesSeleccionado !== undefined && anioSeleccionado !== undefined);
 
-        setTotalTodasFacturas(todasResponse.pagination?.total || todasFacturasData.length);
-        setTotalAsignadas(asignadasResponse.pagination?.total || asignadasData.length);
+      if (isHistorico) {
+        // Load historical data from /dashboard/historico endpoint
+        const response = await apiClient.get('/dashboard/historico', {
+          params: {
+            mes: mesSeleccionado,
+            anio: anioSeleccionado,
+          },
+        });
 
-        const allFacturas = vistaFacturas === 'todas' ? todasFacturasData : asignadasData;
+        const allFacturas = response.data?.facturas || [];
         const filtered = filterByEstado(allFacturas);
 
         setFacturas(filtered);
         setStats(calculateStats(allFacturas));
+        setTotalTodasFacturas(response.data?.total_facturas || allFacturas.length);
+        setTotalAsignadas(response.data?.total_facturas || allFacturas.length);
       } else {
-        // Responsable only sees assigned facturas
-        const response = await facturasService.fetchFacturas({ page: 1, per_page: 2000 });
-        const allFacturas = response.data || [];
+        // Load current month data from /dashboard/mes-actual endpoint
+        if (userRole === 'admin') {
+          // Admin can see both "todas" and "asignadas" for current month
+          const [mesActualResponse, asignadasResponse] = await Promise.all([
+            apiClient.get('/dashboard/mes-actual'),
+            facturasService.fetchFacturas({ solo_asignadas: true, page: 1, per_page: 2000 }),
+          ]);
 
-        const total = response.pagination?.total || allFacturas.length;
-        setTotalAsignadas(total);
-        setTotalTodasFacturas(total);
+          const todasFacturasData = mesActualResponse.data?.facturas || [];
+          const asignadasData = asignadasResponse.data || [];
 
-        const filtered = filterByEstado(allFacturas);
+          setTotalTodasFacturas(mesActualResponse.data?.total_facturas || todasFacturasData.length);
+          setTotalAsignadas(asignadasResponse.pagination?.total || asignadasData.length);
 
-        setFacturas(filtered);
-        setStats(calculateStats(allFacturas));
+          const allFacturas = vistaFacturas === 'todas' ? todasFacturasData : asignadasData;
+          const filtered = filterByEstado(allFacturas);
+
+          setFacturas(filtered);
+          setStats(calculateStats(allFacturas));
+        } else {
+          // Responsable only sees assigned facturas for current month
+          const response = await apiClient.get('/dashboard/mes-actual');
+          const allFacturas = response.data?.facturas || [];
+
+          const total = response.data?.total_facturas || allFacturas.length;
+          setTotalAsignadas(total);
+          setTotalTodasFacturas(total);
+
+          const filtered = filterByEstado(allFacturas);
+
+          setFacturas(filtered);
+          setStats(calculateStats(allFacturas));
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error al cargar facturas');
     } finally {
       setLoading(false);
     }
-  }, [userRole, filterEstado, vistaFacturas, filterByEstado, calculateStats]);
+  }, [userRole, filterEstado, vistaFacturas, mesSeleccionado, anioSeleccionado, filterByEstado, calculateStats]);
 
   useEffect(() => {
     loadData();
